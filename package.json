@@ -1,0 +1,35 @@
+{
+  "name": "rebac_v1",
+  "version": "1.0.0",
+  "description": "An experiment to build a Relationship based access control",
+  "license": "ISC",
+  "author": "Rishabh Maheshwari",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "",
+    "start": "node "
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
+    "@prisma/client": "^7.8.0",
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.6",
+    "@types/ioredis": "^4.28.10",
+    "@types/redis": "^4.0.10",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "helmet": "^8.3.0",
+    "ioredis": "^5.11.1",
+    "pg": "^8.22.0",
+    "redis": "^6.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "@types/pg": "^8.20.0",
+    "prisma": "^7.8.0",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2"
+  }
+}
