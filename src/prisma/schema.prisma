@@ -5,7 +5,7 @@
 
 generator client {
   provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  output   = "../generated/prisma"
 }
 
 datasource db {
@@ -24,7 +24,7 @@ model User {
   updatedAt DateTime @updatedAt
 }
 
-model Object {
+model Resource {
   id        Int      @id @default(autoincrement())
 
   type      String
@@ -42,13 +42,13 @@ model Relationship {
 
   relation String
 
-  objectId Int
-  object   Object @relation(fields: [objectId], references: [id])
+  resourceId Int
+  resource   Resource @relation(fields: [resourceId], references: [id])
 
   subjectId Int
   subject   User @relation("UserRelationships", fields: [subjectId], references: [id])
 
   createdAt DateTime @default(now())
 
-  @@unique([subjectId, objectId, relation])
+  @@unique([subjectId, resourceId, relation])
 }

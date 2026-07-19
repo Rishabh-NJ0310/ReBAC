@@ -2,6 +2,7 @@ import express, { Application } from "express";
 import cors from "cors";
 import helmet from "helmet";
 import dotenv from "dotenv";
+import authorizationRoutes from "./routes/authorization.routes.js";
 
 dotenv.config();
 
@@ -13,6 +14,8 @@ const PORT = process.env.PORT || 7077;
 app.use(cors());
 app.use(helmet());
 app.use(express.json());
+
+app.use("/api", authorizationRoutes);
 
 
 app.listen(PORT, () => {

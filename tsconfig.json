@@ -12,7 +12,9 @@
     "sourceMap": true,
     "removeComments": true,
     "paths": {
-      "*": ["./src/*"]
+      "*": [
+        "./src/*"
+      ]
     },
     "strict": true,
     "ignoreDeprecations": "6.0",
@@ -30,7 +32,8 @@
     ]
   },
   "include": [
-    "src"
+    "src",
+    "prisma.config.ts"
   ],
   "exclude": [
     "node_modules",
