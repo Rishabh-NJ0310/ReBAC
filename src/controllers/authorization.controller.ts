@@ -67,3 +67,34 @@ export const check = async (req: Request, res: Response) => {
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+
+export const getUsers = async (req: Request, res: Response) => {
+    try {
+        const users = await authorizationService.getUsers();
+        res.json(users);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const getResources = async (req: Request, res: Response) => {
+    try {
+        const resources = await authorizationService.getResources();
+        res.json(resources);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const getRelationships = async (req: Request, res: Response) => {
+    try {
+        const relationships = await authorizationService.getRelationships();
+        res.json(relationships);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
