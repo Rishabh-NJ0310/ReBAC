@@ -30,3 +30,15 @@ export async function checkPermission(data: {
 }) {
     return authorizationRepository.checkPermission(data);
 }
+
+export async function getUsers(): Promise<any[]> {
+    return authorizationRepository.getUsers();
+}
+
+export async function getResources(): Promise<any[]> {
+    return authorizationRepository.getResources();
+}
+
+export async function getRelationships(): Promise<any[]> {
+    return authorizationRepository.getRelationships();
+}

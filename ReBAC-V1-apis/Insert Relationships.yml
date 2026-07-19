@@ -1,0 +1,23 @@
+info:
+  name: Insert Relationships
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:7077/api/relationships
+  body:
+    type: json
+    data: |-
+      { 
+        "subjectId": "1", 
+        "resourceId": "2", 
+        "relation" : "assigned_to"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

@@ -46,3 +46,15 @@ export async function checkPermission(data: {
 
     return relationship !== null;
 }
+
+export async function getUsers(): Promise<any[]> {
+    return prisma.user.findMany();
+}
+
+export async function getResources(): Promise<any[]> {
+    return prisma.resource.findMany();
+}
+
+export async function getRelationships(): Promise<any[]> {
+    return prisma.relationship.findMany();
+}
