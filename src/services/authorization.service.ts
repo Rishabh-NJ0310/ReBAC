@@ -42,3 +42,11 @@ export async function getResources(): Promise<any[]> {
 export async function getRelationships(): Promise<any[]> {
     return authorizationRepository.getRelationships();
 }
+
+export async function deleteRelationship(id: number): Promise<void> {
+    return authorizationRepository.deleteRelationship(id);
+}
+
+export async function deleteAll(): Promise<void> {
+    return authorizationRepository.deleteAll();
+}

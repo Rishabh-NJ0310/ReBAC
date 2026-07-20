@@ -1,18 +1,17 @@
 info:
-  name: Insert Relationships
+  name: Insert Resources
   type: http
   seq: 8
 
 http:
   method: POST
-  url: http://localhost:7077/api/relationships
+  url: http://localhost:7077/api/resources
   body:
     type: json
     data: |-
-      { 
-        "subjectId": "1", 
-        "resourceId": "2", 
-        "relation" : "assigned_to"
+      {
+        "type":"nurse",
+        "name":"ward ICU"
       }
   auth: inherit
 

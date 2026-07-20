@@ -55,13 +55,18 @@ export const check = async (req: Request, res: Response) => {
             return;
         }
 
-        const allowed = await authorizationService.checkPermission({
+        const allowed: any = await authorizationService.checkPermission({
             subjectId: Number(subjectId),
             resourceId: Number(actualResourceId),
             relation: relation as string
         });
 
-        res.json({ allowed });
+        res.json({ data:{
+            subjectName: allowed.user?.name ?? "Unknown",
+            relation: relation as string ?? "Unknown",
+            resourceName: allowed.resource?.name ?? "Unknown",
+            allowed: allowed.allowed ?? false
+        } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal Server Error" });
@@ -93,6 +98,51 @@ export const getRelationships = async (req: Request, res: Response) => {
     try {
         const relationships = await authorizationService.getRelationships();
         res.json(relationships);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const allThreeTables = async (req: Request, res: Response) => {
+    try {
+        const users = await authorizationService.getUsers();
+        const resources = await authorizationService.getResources();
+        const relationships = await authorizationService.getRelationships();
+        printTable(users, "Users");
+        printTable(resources, "Resources");
+        printTable(relationships, "Relationships");
+        res.json({ users, resources, relationships });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+export const deleteRelationship = async (req: Request, res: Response) => {
+    try{
+        const { id } = req.query;
+        if(!id){
+            res.status(400).json({ message: "Missing required query parameter: id" });
+            return;
+        }
+        const result = await authorizationService.deleteRelationship(Number(id));
+        res.json({ message: "Relationship deleted successfully", result });
+    }catch(err){
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+}
+
+function printTable(data: any, name: string = "Data") {
+    console.log(`${name}`)
+    console.table(data);
+}
+
+export const deleteAll = async (req: Request, res: Response) => {
+    try {
+        await authorizationService.deleteAll();
+        res.json({ message: "All data deleted successfully" });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal Server Error" });
