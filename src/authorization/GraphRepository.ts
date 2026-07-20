@@ -113,6 +113,31 @@ export class GraphRepository {
             where: filter
         });
     }
+
+
+    async getUsers(): Promise<any[]> {
+        return prisma.user.findMany();
+    }
+
+    async getResources(): Promise<any[]> {
+        return prisma.resource.findMany();
+    }
+
+    async getRelationships(): Promise<any[]> {
+        return prisma.relationship.findMany();
+    }
+
+    async deleteRelationship(id: number): Promise<void> {
+        await prisma.relationship.delete({
+            where: { id }
+        });
+    }
+
+    async deleteAll(): Promise<void> {
+        await prisma.relationship.deleteMany();
+        await prisma.user.deleteMany();
+        await prisma.resource.deleteMany();
+    }
 }
 
 export const graphRepository = new GraphRepository();

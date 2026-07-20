@@ -42,6 +42,26 @@ export class AuthorizationService {
             params.permission
         );
     }
+
+    async getUsers(): Promise<any[]> {
+        return this.repository.getUsers();
+    }
+
+    async getResources(): Promise<any[]> {
+        return this.repository.getResources();
+    }
+
+    async getRelationships(): Promise<any[]> {
+        return this.repository.getRelationships();
+    }
+
+    async deleteRelationship(id: number): Promise<void> {
+        return this.repository.deleteRelationship(id);
+    }
+
+    async deleteAll(): Promise<void> {
+        return this.repository.deleteAll();
+    }
 }
 
 export const authorizationService = new AuthorizationService();
