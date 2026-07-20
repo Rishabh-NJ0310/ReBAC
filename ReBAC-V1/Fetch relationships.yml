@@ -1,11 +1,11 @@
 info:
-  name: Fetch Resources
+  name: Fetch relationships
   type: http
   seq: 4
 
 http:
   method: GET
-  url: http://localhost:7077/api/resources
+  url: http://localhost:7077/api/relationships
   auth: inherit
 
 settings:

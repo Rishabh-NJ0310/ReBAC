@@ -44,7 +44,22 @@ export async function checkPermission(data: {
         }
     });
 
-    return relationship !== null;
+    if(!relationship) {
+        return false;
+    }
+    const user = await prisma.user.findUnique({
+        where: { id: data.subjectId }
+    });
+
+    const resource = await prisma.resource.findUnique({
+        where: { id: data.resourceId }
+    });
+    
+    return {
+        allowed: true,
+        user,
+        resource
+    }
 }
 
 export async function getUsers(): Promise<any[]> {
@@ -57,4 +72,16 @@ export async function getResources(): Promise<any[]> {
 
 export async function getRelationships(): Promise<any[]> {
     return prisma.relationship.findMany();
+}
+
+export async function deleteRelationship(id: number): Promise<void> {
+    await prisma.relationship.delete({
+        where: { id }
+    });
+}
+
+export async function deleteAll(): Promise<void> {
+    await prisma.relationship.deleteMany();
+    await prisma.user.deleteMany();
+    await prisma.resource.deleteMany();
 }

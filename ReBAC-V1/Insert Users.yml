@@ -1,7 +1,7 @@
 info:
   name: Insert Users
   type: http
-  seq: 6
+  seq: 7
 
 http:
   method: POST
@@ -10,8 +10,8 @@ http:
     type: json
     data: |-
       {
-        "name":"Raj",
-        "email":"Raj-email@gmail.com",
+        "name":"Aditi",
+        "email":"aditi-email@gmail.com",
         "password":"raj10"
       }
   auth: inherit
