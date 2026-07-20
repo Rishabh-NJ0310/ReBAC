@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import * as authorizationService from "../services/authorization.service.js";
+import { authorizationService } from "../authorization/AuthorizationService.js";
 
 export const setUser = async (req: Request, res: Response) => {
     try {
@@ -21,21 +21,26 @@ export const setResource = async (req: Request, res: Response) => {
     }
 };
 
+export const setObject = setResource;
 
 export const setRelationship = async (req: Request, res: Response) => {
     try {
-        const { subjectId, resourceId, objectId, relation } = req.body;
-        const actualResourceId = resourceId ?? objectId;
+        const { relation, userSubjectId, subjectId, resourceSubjectId, objectId, resourceId } = req.body;
+        const targetResourceId = objectId ?? resourceId;
+        const actualUserSubjectId = userSubjectId ?? (resourceSubjectId ? undefined : subjectId);
 
-        if (!subjectId || !actualResourceId || !relation) {
-            res.status(400).json({ message: "Missing required fields: subjectId, resourceId (or objectId), and relation" });
+        if (!relation || (!actualUserSubjectId && !resourceSubjectId) || !targetResourceId) {
+            res.status(400).json({
+                message: "Missing required fields. Provide relation, objectId/resourceId, and either userSubjectId/subjectId or resourceSubjectId."
+            });
             return;
         }
 
         const relationship = await authorizationService.createRelationship({
-            subjectId: Number(subjectId),
-            resourceId: Number(actualResourceId),
-            relation
+            relation,
+            userSubjectId: actualUserSubjectId ? Number(actualUserSubjectId) : undefined,
+            resourceSubjectId: resourceSubjectId ? Number(resourceSubjectId) : undefined,
+            objectId: Number(targetResourceId)
         });
 
         res.status(201).json(relationship);
@@ -47,104 +52,27 @@ export const setRelationship = async (req: Request, res: Response) => {
 
 export const check = async (req: Request, res: Response) => {
     try {
-        const { subjectId, resourceId, objectId, relation } = req.query;
+        const { userId, subjectId, resourceId, objectId, permission, relation } = req.query;
+        const actualUserId = userId ?? subjectId;
         const actualResourceId = resourceId ?? objectId;
+        const actualPermission = (permission ?? relation) as string;
 
-        if (!subjectId || !actualResourceId || !relation) {
-            res.status(400).json({ message: "Missing required query parameters: subjectId, resourceId (or objectId), and relation" });
+        if (!actualUserId || !actualResourceId || !actualPermission) {
+            res.status(400).json({
+                message: "Missing required query parameters: userId (or subjectId), resourceId (or objectId), and permission (or relation)."
+            });
             return;
         }
 
-        const allowed: any = await authorizationService.checkPermission({
-            subjectId: Number(subjectId),
+        const allowed = await authorizationService.checkPermission({
+            userId: Number(actualUserId),
             resourceId: Number(actualResourceId),
-            relation: relation as string
+            permission: actualPermission
         });
 
-        res.json({ data:{
-            subjectName: allowed.user?.name ?? "Unknown",
-            relation: relation as string ?? "Unknown",
-            resourceName: allowed.resource?.name ?? "Unknown",
-            allowed: allowed.allowed ?? false
-        } });
+        res.json({ allowed });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
-
-
-export const getUsers = async (req: Request, res: Response) => {
-    try {
-        const users = await authorizationService.getUsers();
-        res.json(users);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}
-
-export const getResources = async (req: Request, res: Response) => {
-    try {
-        const resources = await authorizationService.getResources();
-        res.json(resources);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}
-
-export const getRelationships = async (req: Request, res: Response) => {
-    try {
-        const relationships = await authorizationService.getRelationships();
-        res.json(relationships);
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}
-
-export const allThreeTables = async (req: Request, res: Response) => {
-    try {
-        const users = await authorizationService.getUsers();
-        const resources = await authorizationService.getResources();
-        const relationships = await authorizationService.getRelationships();
-        printTable(users, "Users");
-        printTable(resources, "Resources");
-        printTable(relationships, "Relationships");
-        res.json({ users, resources, relationships });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}
-
-export const deleteRelationship = async (req: Request, res: Response) => {
-    try{
-        const { id } = req.query;
-        if(!id){
-            res.status(400).json({ message: "Missing required query parameter: id" });
-            return;
-        }
-        const result = await authorizationService.deleteRelationship(Number(id));
-        res.json({ message: "Relationship deleted successfully", result });
-    }catch(err){
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}
-
-function printTable(data: any, name: string = "Data") {
-    console.log(`${name}`)
-    console.table(data);
-}
-
-export const deleteAll = async (req: Request, res: Response) => {
-    try {
-        await authorizationService.deleteAll();
-        res.json({ message: "All data deleted successfully" });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-}

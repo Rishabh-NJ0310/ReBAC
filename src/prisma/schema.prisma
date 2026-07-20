@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -18,7 +16,7 @@ model User {
   email     String   @unique
   password  String
 
-  relationships Relationship[] @relation("UserRelationships")
+  relationships Relationship[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -26,29 +24,31 @@ model User {
 
 model Resource {
   id        Int      @id @default(autoincrement())
-
   type      String
   name      String
 
-  relationships Relationship[]
+  relationshipsAsSubject Relationship[] @relation("SubjectResource")
+  relationshipsAsTarget  Relationship[] @relation("TargetResource")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
 
 model Relationship {
-
   id Int @id @default(autoincrement())
 
   relation String
 
-  resourceId Int
-  resource   Resource @relation(fields: [resourceId], references: [id])
+  userSubjectId Int?
+  userSubject   User? @relation(fields: [userSubjectId], references: [id])
 
-  subjectId Int
-  subject   User @relation("UserRelationships", fields: [subjectId], references: [id])
+  resourceSubjectId Int?
+  resourceSubject   Resource? @relation("SubjectResource", fields: [resourceSubjectId], references: [id])
+
+  objectId Int
+  object   Resource @relation("TargetResource", fields: [objectId], references: [id])
 
   createdAt DateTime @default(now())
 
-  @@unique([subjectId, resourceId, relation])
+  @@index([objectId, relation])
 }
