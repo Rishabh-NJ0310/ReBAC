@@ -3,8 +3,15 @@ export interface Rule {
     permission?: string;
 }
 
+export type Operator = "AND" | "OR" | "NOT";
+
+export interface RuleGroup {
+    operator: Operator;
+    rules: (Rule | RuleGroup)[];
+}
+
 export interface ResourceTypeRules {
-    [permission: string]: Rule[];
+    [permission: string]: RuleGroup | Rule | Rule[];
 }
 
 export interface RebacSchema {
@@ -13,34 +20,31 @@ export interface RebacSchema {
 
 export const schema: RebacSchema = {
     patient: {
-        view: [
-            {
-                relation: "doctor_of"
-            },
-            {
-                relation: "contains",
-                permission: "view"
-            }
-        ]
+        view: {
+            operator: "OR",
+            rules: [
+                { relation: "doctor_of" },
+                { relation: "contains", permission: "view" }
+            ]
+        }
     },
 
     ward: {
-        view: [
-            {
-                relation: "assigned_nurse"
-            },
-            {
-                relation: "contains",
-                permission: "view"
-            }
-        ]
+        view: {
+            operator: "OR",
+            rules: [
+                { relation: "assigned_nurse" },
+                { relation: "contains", permission: "view" }
+            ]
+        }
     },
 
     department: {
-        view: [
-            {
-                relation: "head_of"
-            }
-        ]
+        view: {
+            operator: "OR",
+            rules: [
+                { relation: "head_of" }
+            ]
+        }
     }
 };

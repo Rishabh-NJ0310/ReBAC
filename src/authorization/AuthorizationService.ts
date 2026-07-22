@@ -1,5 +1,5 @@
 import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, CreateRelationshipData } from "./GraphRepository.js";
-import { RuleEngine } from "./RuleEngine.js";
+import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
 import { schema } from "./Schema.js";
 
 export class AuthorizationService {
@@ -30,21 +30,27 @@ export class AuthorizationService {
         userId: number;
         resourceId: number;
         permission: string;
-    }): Promise<boolean> {
+    }): Promise<{ allowed: boolean; trace: TraceStep[] }> {
         const resource = await this.repository.getResourceById(params.resourceId);
         if (!resource) {
-            return false;
+            return { allowed: false, trace: [] };
         }
 
-       const result = await this.ruleEngine.checkPermission(
-            params.userId,
-            resource,
-            params.permission
-        );
+        const context: EvaluationContext = {
+            userId: params.userId,
+            permission: params.permission,
+            processing: new Set<string>(),
+            memo: new Map<string, boolean>(),
+            trace: []
+        };
 
-        console.log("FINAL RESULT =", result);
+        const allowed = await this.ruleEngine.checkPermission(context, resource);
 
-        return result;
+        return { allowed, trace: context.trace };
+    }
+
+    async getGraphData() {
+        return this.repository.getGraphData();
     }
 
     async getUsers(): Promise<any[]> {

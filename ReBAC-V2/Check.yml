@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:7077/api/check?subjectId=3&resourceId=1&relation=assigned_to
+  url: http://localhost:7077/api/v2.1/check?subjectId=3&resourceId=1&relation=assigned_to
   params:
     - name: subjectId
       value: "3"

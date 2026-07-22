@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 7077;
 
 
 app.use(cors());
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 
 app.use("/api", authorizationRoutes);

@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:7077/api/relationships
+  url: http://localhost:7077/api/v2.1/relationships
   auth: inherit
 
 settings:

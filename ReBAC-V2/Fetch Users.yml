@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: http://localhost:7077/api/users
+  url: http://localhost:7077/api/v2.1/users
   body:
     type: json
     data: |-

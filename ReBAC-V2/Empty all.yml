@@ -4,8 +4,8 @@ info:
   seq: 11
 
 http:
-  method: DELETE
-  url: http://localhost:7077/api/all
+  method: POST
+  url: http://localhost:7077/api/v2.1/deleteAll
   auth: inherit
 
 settings:

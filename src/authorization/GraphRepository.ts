@@ -120,6 +120,38 @@ export class GraphRepository {
         });
     }
 
+    async getGraphData() {
+        const users = await prisma.user.findMany();
+        const resources = await prisma.resource.findMany();
+        const relationships = await prisma.relationship.findMany();
+
+        const nodes = [
+            ...users.map((u) => ({
+                id: `user:${u.id}`,
+                label: `User: ${u.name}`,
+                type: "user",
+                details: { name: u.name, email: u.email }
+            })),
+            ...resources.map((r) => ({
+                id: `resource:${r.id}`,
+                label: `${r.type.toUpperCase()}: ${r.name}`,
+                type: r.type,
+                details: { name: r.name, type: r.type }
+            }))
+        ];
+
+        const edges = relationships.map((r) => {
+            const source = r.userSubjectId ? `user:${r.userSubjectId}` : `resource:${r.resourceSubjectId}`;
+            return {
+                id: `edge:${r.id}`,
+                source,
+                target: `resource:${r.objectId}`,
+                label: r.relation
+            };
+        });
+
+        return { nodes, edges };
+    }
 
     async getUsers(): Promise<any[]> {
         return prisma.user.findMany();

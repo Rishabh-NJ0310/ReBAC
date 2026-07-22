@@ -1,82 +1,182 @@
 import { GraphRepository } from "./GraphRepository.js";
-import { RebacSchema, schema as defaultSchema } from "./Schema.js";
-import { Resource } from "../generated/prisma/client.js";
+import { RebacSchema, schema as defaultSchema, RuleGroup, Rule } from "./Schema.js";
+
+export interface TraceStep {
+    resourceId: number;
+    resourceType: string;
+    permission: string;
+    rule: string;
+    result: boolean;
+}
+
+export interface EvaluationContext {
+    userId: number;
+    permission: string;
+    processing: Set<string>;
+    memo: Map<string, boolean>;
+    trace: TraceStep[];
+}
 
 export class RuleEngine {
     constructor(
         private repository: GraphRepository,
         private schema: RebacSchema = defaultSchema
-    ) {}
+    ) { }
 
     async checkPermission(
-        userId: number,
-        resource: { id: number; type: string },
-        permission: string,
-        visited = new Set<string>()
+        context: EvaluationContext,
+        resource: { id: number; type: string }
     ): Promise<boolean> {
-        const cacheKey = `${userId}:${resource.id}:${permission}`;
-        if (visited.has(cacheKey)) {
+        const cacheKey = `${context.userId}:${resource.id}:${context.permission}`;
+
+        if (context.processing.has(cacheKey)) {
+            // Cycle detected - abort path
             return false;
         }
-        visited.add(cacheKey);
 
-        const rules = this.schema[resource.type]?.[permission] || [];
-        console.log("--------------------------------");
-        console.log("Checking");
+        if (context.memo.has(cacheKey)) {
+            return context.memo.get(cacheKey)!;
+        }
 
-        console.log({
-            userId,
-            resource,
-            permission
-        });
+        context.processing.add(cacheKey);
 
-        for (const rule of rules) {
-            console.log("Rules");
-            console.log(rules);
-            // Direct relationship check
-            if (rule.relation && !rule.permission) {
-                console.log("Trying direct relation");
-                console.log(rule.relation);
-                const isDirect = await this.repository.findDirectRelationship({
-                    userSubjectId: userId,
-                    objectId: resource.id,
-                    relation: rule.relation
+        const permissionConfig = this.schema[resource.type]?.[context.permission];
+        let result = false;
+
+        if (permissionConfig) {
+            if ("operator" in permissionConfig) {
+                result = await this.evaluateOperator(context, resource, permissionConfig);
+            } else if (Array.isArray(permissionConfig)) {
+                // Backward compatibility: wrap array in an implicit OR operator
+                result = await this.evaluateOperator(context, resource, {
+                    operator: "OR",
+                    rules: permissionConfig
                 });
-
-                if (isDirect) {
-                    return true;
-                }
-                console.log("Direct =", isDirect);
+            } else {
+                result = await this.evaluateRule(context, resource, permissionConfig);
             }
+        }
 
-            // Inherited/parent permission check
-            if (rule.relation && rule.permission) {
-                const parents: Resource[] = await this.repository.findParents({
-                    objectId: resource.id,
-                    relation: rule.relation
-                });
-                
-                console.log("Parents");
-                console.table(parents);
-                for (const parent of parents) {
-                    console.log(`DFS -> ${parent.name}`);
-                    const allowed = await this.checkPermission(
-                        userId,
-                        parent,
-                        rule.permission,
-                        visited
-                    );
-                    if (allowed) {
-                        console.log("ALLOW");
-                        return true;
-                    }else{
-                        console.log("DENY");
-                    }
+        context.processing.delete(cacheKey);
+        context.memo.set(cacheKey, result);
 
-                }
+        return result;
+    }
+
+    async evaluateOperator(
+        context: EvaluationContext,
+        resource: { id: number; type: string },
+        group: RuleGroup
+    ): Promise<boolean> {
+        const operator = group.operator;
+
+        if (operator === "OR") {
+            for (const item of group.rules) {
+                const allowed = await this.evaluateRuleOrGroup(context, resource, item);
+                if (allowed) return true;
             }
+            return false;
+        }
+
+        if (operator === "AND") {
+            for (const item of group.rules) {
+                const allowed = await this.evaluateRuleOrGroup(context, resource, item);
+                if (!allowed) return false;
+            }
+            return group.rules.length > 0;
+        }
+
+        if (operator === "NOT") {
+            if (group.rules.length === 0) return true;
+            const allowed = await this.evaluateRuleOrGroup(context, resource, group.rules[0]);
+            return !allowed;
         }
 
         return false;
+    }
+
+    async evaluateRuleOrGroup(
+        context: EvaluationContext,
+        resource: { id: number; type: string },
+        item: Rule | RuleGroup
+    ): Promise<boolean> {
+        if ("operator" in item) {
+            return this.evaluateOperator(context, resource, item);
+        } else {
+            return this.evaluateRule(context, resource, item);
+        }
+    }
+
+    async evaluateRule(
+        context: EvaluationContext,
+        resource: { id: number; type: string },
+        rule: Rule
+    ): Promise<boolean> {
+        if (rule.relation && !rule.permission) {
+            return this.evaluateDirect(context, resource, rule);
+        } else if (rule.relation && rule.permission) {
+            return this.evaluateRecursive(context, resource, rule);
+        }
+        return false;
+    }
+
+    async evaluateDirect(
+        context: EvaluationContext,
+        resource: { id: number; type: string },
+        rule: Rule
+    ): Promise<boolean> {
+        const outcome = await this.repository.findDirectRelationship({
+            userSubjectId: context.userId,
+            objectId: resource.id,
+            relation: rule.relation
+        });
+
+        context.trace.push({
+            resourceId: resource.id,
+            resourceType: resource.type,
+            permission: context.permission,
+            rule: `Direct: ${rule.relation}`,
+            result: outcome
+        });
+
+        return outcome;
+    }
+
+    async evaluateRecursive(
+        context: EvaluationContext,
+        resource: { id: number; type: string },
+        rule: Rule
+    ): Promise<boolean> {
+        const parents = await this.repository.findParents({
+            objectId: resource.id,
+            relation: rule.relation
+        });
+
+        let outcome = false;
+        for (const parent of parents) {
+            const subContext: EvaluationContext = {
+                userId: context.userId,
+                permission: rule.permission!,
+                processing: context.processing,
+                memo: context.memo,
+                trace: context.trace
+            };
+
+            const allowed = await this.checkPermission(subContext, parent);
+            if (allowed) {
+                outcome = true;
+                break;
+            }
+        }
+
+        context.trace.push({
+            resourceId: resource.id,
+            resourceType: resource.type,
+            permission: context.permission,
+            rule: `Recursive: ${rule.relation} -> ${rule.permission}`,
+            result: outcome
+        });
+
+        return outcome;
     }
 }
