@@ -10,8 +10,8 @@ http:
     type: json
     data: |-
       {
-        "type":"nurse",
-        "name":"ward ICU"
+        "type":"prescription",
+        "name":"Prescription101"
       }
   auth: inherit
 

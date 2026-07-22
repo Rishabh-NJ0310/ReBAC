@@ -10,9 +10,12 @@ http:
     type: json
     data: |-
       { 
-        "subjectId": "1", 
-        "resourceId": "3", 
-        "relation" : "assigned_to"
+        "relation": "has_prescription", 
+        "userSubjectId": "", 
+        "subjectId": "", 
+        "resourceSubjectId": "16", 
+        "objectId": "18", 
+        "resourceId": ""
       }
   auth: inherit
 

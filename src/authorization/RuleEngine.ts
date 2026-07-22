@@ -21,10 +21,22 @@ export class RuleEngine {
         visited.add(cacheKey);
 
         const rules = this.schema[resource.type]?.[permission] || [];
+        console.log("--------------------------------");
+        console.log("Checking");
+
+        console.log({
+            userId,
+            resource,
+            permission
+        });
 
         for (const rule of rules) {
+            console.log("Rules");
+            console.log(rules);
             // Direct relationship check
             if (rule.relation && !rule.permission) {
+                console.log("Trying direct relation");
+                console.log(rule.relation);
                 const isDirect = await this.repository.findDirectRelationship({
                     userSubjectId: userId,
                     objectId: resource.id,
@@ -34,6 +46,7 @@ export class RuleEngine {
                 if (isDirect) {
                     return true;
                 }
+                console.log("Direct =", isDirect);
             }
 
             // Inherited/parent permission check
@@ -42,18 +55,24 @@ export class RuleEngine {
                     objectId: resource.id,
                     relation: rule.relation
                 });
-
+                
+                console.log("Parents");
+                console.table(parents);
                 for (const parent of parents) {
+                    console.log(`DFS -> ${parent.name}`);
                     const allowed = await this.checkPermission(
                         userId,
                         parent,
                         rule.permission,
                         visited
                     );
-
                     if (allowed) {
+                        console.log("ALLOW");
                         return true;
+                    }else{
+                        console.log("DENY");
                     }
+
                 }
             }
         }

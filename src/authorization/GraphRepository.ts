@@ -54,6 +54,9 @@ export class GraphRepository {
         objectId: number;
         relation: string;
     }): Promise<boolean> {
+        console.log("QUERY");
+    
+        console.log(params);
         const rel = await prisma.relationship.findFirst({
             where: {
                 userSubjectId: params.userSubjectId,
@@ -61,6 +64,9 @@ export class GraphRepository {
                 relation: params.relation
             }
         });
+        console.log("FOUND");
+
+        console.log(rel);
         return rel !== null;
     }
 

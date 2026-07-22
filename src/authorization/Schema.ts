@@ -15,18 +15,31 @@ export const schema: RebacSchema = {
     patient: {
         view: [
             {
-                relation: "doctor"
+                relation: "doctor_of"
             },
             {
-                relation: "admitted_in",
+                relation: "contains",
                 permission: "view"
             }
         ]
     },
+
     ward: {
         view: [
             {
                 relation: "assigned_nurse"
+            },
+            {
+                relation: "contains",
+                permission: "view"
+            }
+        ]
+    },
+
+    department: {
+        view: [
+            {
+                relation: "head_of"
             }
         ]
     }

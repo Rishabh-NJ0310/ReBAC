@@ -36,11 +36,15 @@ export class AuthorizationService {
             return false;
         }
 
-        return this.ruleEngine.checkPermission(
+       const result = await this.ruleEngine.checkPermission(
             params.userId,
             resource,
             params.permission
         );
+
+        console.log("FINAL RESULT =", result);
+
+        return result;
     }
 
     async getUsers(): Promise<any[]> {
