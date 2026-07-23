@@ -1,0 +1,32 @@
+# Hospital Authorization Schema (ADSL v1.0)
+
+resource patient {
+    relation doctor_of
+    relation contains
+
+    permission view =
+        doctor_of
+        OR contains -> view
+
+    permission edit =
+        doctor_of
+
+    permission delete =
+        admin
+}
+
+resource ward {
+    relation assigned_nurse
+    relation contains
+
+    permission view =
+        assigned_nurse
+        OR contains -> view
+}
+
+resource department {
+    relation head_of
+
+    permission view =
+        head_of
+}

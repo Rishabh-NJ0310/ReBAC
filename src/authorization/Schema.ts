@@ -1,3 +1,7 @@
+import fs from "fs";
+import path from "path";
+import { compileAuthDSL } from "../compiler/CompilerFacade.js";
+
 export interface Rule {
     relation: string;
     permission?: string;
@@ -18,7 +22,7 @@ export interface RebacSchema {
     [resourceType: string]: ResourceTypeRules;
 }
 
-export const schema: RebacSchema = {
+const fallbackSchema: RebacSchema = {
     patient: {
         view: {
             operator: "OR",
@@ -28,7 +32,6 @@ export const schema: RebacSchema = {
             ]
         }
     },
-
     ward: {
         view: {
             operator: "OR",
@@ -38,7 +41,6 @@ export const schema: RebacSchema = {
             ]
         }
     },
-
     department: {
         view: {
             operator: "OR",
@@ -48,3 +50,18 @@ export const schema: RebacSchema = {
         }
     }
 };
+
+export function loadSchemaFromDSL(filePath?: string): RebacSchema {
+    try {
+        const targetPath = filePath || path.join(process.cwd(), "src", "schema", "hospital.auth");
+        if (fs.existsSync(targetPath)) {
+            const content = fs.readFileSync(targetPath, "utf-8");
+            return compileAuthDSL(content);
+        }
+    } catch (err) {
+        console.warn("Failed to load schema from DSL file, using fallback:", err);
+    }
+    return fallbackSchema;
+}
+
+export const schema: RebacSchema = loadSchemaFromDSL();
