@@ -2,14 +2,37 @@ import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, C
 import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
 import { SubjectResolver } from "./SubjectResolver.js";
 import { ExecutionProfiler, ExecutionProfile } from "./ExecutionProfiler.js";
-import { schema } from "./Schema.js";
+import { ExplainTreeBuilder, ExplainNode } from "./ExplainTree.js";
+import { CaveatEvaluator, CaveatContext, globalCaveatEvaluator } from "./CaveatEvaluator.js";
+import { ABACContext } from "./ABACEvaluator.js";
+import { schema, RebacSchema } from "./Schema.js";
+import { globalTenantRegistry } from "../compiler/tenant/TenantRegistry.js";
+
+export interface CheckPermissionParams {
+    userId: number;
+    resourceId: number;
+    permission: string;
+    /** Optional tenant ID to load an isolated tenant schema */
+    tenantId?: string;
+    /** Runtime ABAC attribute context: { user: {...}, patient: {...}, ... } */
+    attributes?: ABACContext;
+    /** Extra caveat context fields beyond userId/resourceId/attributes */
+    caveatContext?: CaveatContext;
+}
+
+export interface CheckPermissionResult {
+    allowed: boolean;
+    trace: TraceStep[];
+    profile?: ExecutionProfile;
+    explainTree?: ExplainNode | null;
+    explainText?: string;
+}
 
 export class AuthorizationService {
-    private ruleEngine: RuleEngine;
-
-    constructor(private repository: GraphRepository = graphRepository) {
-        this.ruleEngine = new RuleEngine(this.repository, schema);
-    }
+    constructor(
+        private repository: GraphRepository = graphRepository,
+        private caveatEvaluator: CaveatEvaluator = globalCaveatEvaluator
+    ) {}
 
     async createUser(data: CreateUserData) {
         return this.repository.createUser(data);
@@ -23,7 +46,6 @@ export class AuthorizationService {
         return this.repository.createResource(data);
     }
 
-    // Alias for backward compatibility
     async createObject(data: CreateResourceData) {
         return this.createResource(data);
     }
@@ -32,17 +54,23 @@ export class AuthorizationService {
         return this.repository.createRelationship(data);
     }
 
-    async checkPermission(params: {
-        userId: number;
-        resourceId: number;
-        permission: string;
-    }): Promise<{ allowed: boolean; trace: TraceStep[]; profile?: ExecutionProfile }> {
+    async checkPermission(params: CheckPermissionParams): Promise<CheckPermissionResult> {
         const resource = await this.repository.getResourceById(params.resourceId);
         if (!resource) {
-            return { allowed: false, trace: [] };
+            return { allowed: false, trace: [], explainTree: null, explainText: "✘ Resource not found" };
         }
 
+        // Resolve schema — tenant-specific or default
+        let activeSchema: RebacSchema = schema;
+        if (params.tenantId) {
+            if (globalTenantRegistry.has(params.tenantId)) {
+                activeSchema = globalTenantRegistry.getSchema(params.tenantId);
+            }
+        }
+
+        const ruleEngine = new RuleEngine(this.repository, activeSchema, this.caveatEvaluator);
         const profiler = new ExecutionProfiler();
+        const explainBuilder = new ExplainTreeBuilder();
         profiler.start();
 
         const subjectResolver = new SubjectResolver(this.repository);
@@ -55,45 +83,31 @@ export class AuthorizationService {
             processing: new Set<string>(),
             memo: new Map<string, boolean>(),
             trace: [],
-            profiler
+            profiler,
+            explainTree: explainBuilder,
+            attributes: params.attributes,
+            caveatContext: params.caveatContext
         };
 
-        const allowed = await this.ruleEngine.checkPermission(context, resource);
+        const allowed = await ruleEngine.checkPermission(context, resource);
+        const explainTree = explainBuilder.getTree();
 
         return {
             allowed,
             trace: context.trace,
-            profile: profiler.getProfile()
+            profile: profiler.getProfile(),
+            explainTree,
+            explainText: explainBuilder.renderText(explainTree)
         };
     }
 
-    async getGraphData() {
-        return this.repository.getGraphData();
-    }
-
-    async getUsers(): Promise<any[]> {
-        return this.repository.getUsers();
-    }
-
-    async getGroups(): Promise<any[]> {
-        return this.repository.getGroups();
-    }
-
-    async getResources(): Promise<any[]> {
-        return this.repository.getResources();
-    }
-
-    async getRelationships(): Promise<any[]> {
-        return this.repository.getRelationships();
-    }
-
-    async deleteRelationship(id: number): Promise<void> {
-        return this.repository.deleteRelationship(id);
-    }
-
-    async deleteAll(): Promise<void> {
-        return this.repository.deleteAll();
-    }
+    async getGraphData() { return this.repository.getGraphData(); }
+    async getUsers(): Promise<any[]> { return this.repository.getUsers(); }
+    async getGroups(): Promise<any[]> { return this.repository.getGroups(); }
+    async getResources(): Promise<any[]> { return this.repository.getResources(); }
+    async getRelationships(): Promise<any[]> { return this.repository.getRelationships(); }
+    async deleteRelationship(id: number): Promise<void> { return this.repository.deleteRelationship(id); }
+    async deleteAll(): Promise<void> { return this.repository.deleteAll(); }
 }
 
 export const authorizationService = new AuthorizationService();

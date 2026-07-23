@@ -15,6 +15,8 @@ export class Lexer {
         module: TokenType.MODULE,
         namespace: TokenType.NAMESPACE,
         extends: TokenType.EXTENDS,
+        if: TokenType.IF,
+        IF: TokenType.IF,
         AND: TokenType.AND,
         OR: TokenType.OR,
         NOT: TokenType.NOT,
@@ -42,13 +44,29 @@ export class Lexer {
                 continue;
             }
 
-            // 3. Two-character symbols (-> or ::)
+            // 3. Two-character symbols (-> or :: or == or != or <= or >=)
             if (char === '-' && this.peek() === '>') {
                 tokens.push(this.makeToken(TokenType.ARROW, "->", 2));
                 continue;
             }
             if (char === ':' && this.peek() === ':') {
                 tokens.push(this.makeToken(TokenType.COLON_COLON, "::", 2));
+                continue;
+            }
+            if (char === '=' && this.peek() === '=') {
+                tokens.push(this.makeToken(TokenType.EQEQ, "==", 2));
+                continue;
+            }
+            if (char === '!' && this.peek() === '=') {
+                tokens.push(this.makeToken(TokenType.NEQ, "!=", 2));
+                continue;
+            }
+            if (char === '<' && this.peek() === '=') {
+                tokens.push(this.makeToken(TokenType.LTE, "<=", 2));
+                continue;
+            }
+            if (char === '>' && this.peek() === '=') {
+                tokens.push(this.makeToken(TokenType.GTE, ">=", 2));
                 continue;
             }
 
@@ -79,6 +97,14 @@ export class Lexer {
             }
             if (char === '.') {
                 tokens.push(this.makeToken(TokenType.DOT, "."));
+                continue;
+            }
+            if (char === '<') {
+                tokens.push(this.makeToken(TokenType.LT, "<"));
+                continue;
+            }
+            if (char === '>') {
+                tokens.push(this.makeToken(TokenType.GT, ">"));
                 continue;
             }
 

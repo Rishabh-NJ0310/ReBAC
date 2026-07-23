@@ -10,6 +10,9 @@ export type ASTNodeType =
     | "BinaryExpression"
     | "UnaryExpression"
     | "Relation"
+    | "CaveatExpression"
+    | "AttributeCondition"
+    | "AttributePath"
     | "BooleanLiteral";
 
 export interface ASTNode {
@@ -72,6 +75,8 @@ export type ExpressionNode =
     | BinaryExpressionNode
     | UnaryExpressionNode
     | RelationNode
+    | CaveatExpressionNode
+    | AttributeConditionNode
     | BooleanLiteralNode;
 
 export interface BinaryExpressionNode extends ASTNode {
@@ -91,6 +96,29 @@ export interface RelationNode extends ASTNode {
     nodeType: "Relation";
     relation: string;
     permission?: string;
+}
+
+/** Caveat: doctor_of IF shift_active */
+export interface CaveatExpressionNode extends ASTNode {
+    nodeType: "CaveatExpression";
+    relation: RelationNode;
+    caveat: string;
+}
+
+/** ABAC: patient.status == "READY" */
+export interface AttributePathNode extends ASTNode {
+    nodeType: "AttributePath";
+    object: string;    // e.g. "patient", "user"
+    field: string;     // e.g. "status", "department"
+}
+
+export type ComparisonOperator = "==" | "!=" | "<" | ">" | "<=" | ">=";
+
+export interface AttributeConditionNode extends ASTNode {
+    nodeType: "AttributeCondition";
+    left: AttributePathNode | string;        // attribute path or string literal
+    operator: ComparisonOperator;
+    right: AttributePathNode | string;       // attribute path or string literal
 }
 
 export interface BooleanLiteralNode extends ASTNode {

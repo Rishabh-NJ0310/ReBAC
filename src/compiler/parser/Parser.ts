@@ -13,6 +13,10 @@ import {
     BinaryExpressionNode,
     UnaryExpressionNode,
     RelationNode,
+    CaveatExpressionNode,
+    AttributeConditionNode,
+    AttributePathNode,
+    ComparisonOperator,
     BooleanLiteralNode
 } from "../ast/Nodes.js";
 
@@ -181,6 +185,8 @@ export class Parser {
         };
     }
 
+    // ─── Expression Parsing (Pratt-style precedence) ─────────────────────────
+
     private parseExpression(): ExpressionNode {
         return this.parseOrExpression();
     }
@@ -209,15 +215,29 @@ export class Parser {
 
         while (this.match(TokenType.AND)) {
             const operatorToken = this.previous();
-            const right = this.parseUnaryExpression();
-            left = {
-                nodeType: "BinaryExpression",
-                operator: "AND",
-                left,
-                right,
-                line: operatorToken.line,
-                column: operatorToken.column
-            } as BinaryExpressionNode;
+
+            // After AND, check if next is an attribute condition (identifier.field op value)
+            if (this.isAttributeConditionAhead()) {
+                const attrCond = this.parseAttributeCondition();
+                left = {
+                    nodeType: "BinaryExpression",
+                    operator: "AND",
+                    left,
+                    right: attrCond,
+                    line: operatorToken.line,
+                    column: operatorToken.column
+                } as BinaryExpressionNode;
+            } else {
+                const right = this.parseUnaryExpression();
+                left = {
+                    nodeType: "BinaryExpression",
+                    operator: "AND",
+                    left,
+                    right,
+                    line: operatorToken.line,
+                    column: operatorToken.column
+                } as BinaryExpressionNode;
+            }
         }
 
         return left;
@@ -257,14 +277,24 @@ export class Parser {
         }
 
         if (this.match(TokenType.IDENTIFIER)) {
-            return this.parseRelationFromToken(this.previous());
+            const identToken = this.previous();
+
+            // Could be: attribute.field == value (ABAC standalone)
+            if (this.check(TokenType.DOT) && this.isAttributeConditionAheadFromIdent()) {
+                return this.parseAttributeConditionFromIdent(identToken);
+            }
+
+            // Otherwise parse as relation (with optional ->permission or IF caveat)
+            return this.parseRelationFromToken(identToken);
         }
 
         const token = this.peek();
         throw new Error(`Parse Error: Unexpected token '${token.value}' at line ${token.line}, column ${token.column}`);
     }
 
-    private parseRelationFromToken(relToken: Token): RelationNode {
+    // ─── Relation & Caveat Parsing ────────────────────────────────────────────
+
+    private parseRelationFromToken(relToken: Token): RelationNode | CaveatExpressionNode {
         let permission: string | undefined = undefined;
 
         if (this.match(TokenType.ARROW) || this.match(TokenType.DOT)) {
@@ -272,14 +302,127 @@ export class Parser {
             permission = permToken.value;
         }
 
-        return {
+        const relationNode: RelationNode = {
             nodeType: "Relation",
             relation: relToken.value,
             permission,
             line: relToken.line,
             column: relToken.column
         };
+
+        // IF caveat: doctor_of IF shift_active
+        if (this.match(TokenType.IF)) {
+            const caveatToken = this.consume(TokenType.IDENTIFIER, "Expected caveat name after 'IF'");
+            return {
+                nodeType: "CaveatExpression",
+                relation: relationNode,
+                caveat: caveatToken.value,
+                line: relToken.line,
+                column: relToken.column
+            } as CaveatExpressionNode;
+        }
+
+        return relationNode;
     }
+
+    // ─── ABAC Attribute Condition Parsing ────────────────────────────────────
+
+    /**
+     * Looks ahead to determine if we have an attribute condition pattern:
+     * IDENTIFIER DOT IDENTIFIER (EQEQ | NEQ | LT | GT | LTE | GTE) (STRING_LITERAL | IDENTIFIER)
+     */
+    private isAttributeConditionAhead(): boolean {
+        // Save position, peek 4 tokens ahead
+        const saved = this.current;
+        try {
+            if (!this.check(TokenType.IDENTIFIER)) return false;
+            this.advance(); // IDENTIFIER (object)
+            if (!this.check(TokenType.DOT)) return false;
+            this.advance(); // DOT
+            if (!this.check(TokenType.IDENTIFIER)) return false;
+            this.advance(); // IDENTIFIER (field)
+            return this.isComparisonOperator();
+        } finally {
+            this.current = saved;
+        }
+    }
+
+    private isAttributeConditionAheadFromIdent(): boolean {
+        const saved = this.current;
+        try {
+            this.advance(); // consume DOT
+            if (!this.check(TokenType.IDENTIFIER)) return false;
+            this.advance(); // field
+            return this.isComparisonOperator();
+        } finally {
+            this.current = saved;
+        }
+    }
+
+    private isComparisonOperator(): boolean {
+        return this.check(TokenType.EQEQ)
+            || this.check(TokenType.NEQ)
+            || this.check(TokenType.LT)
+            || this.check(TokenType.GT)
+            || this.check(TokenType.LTE)
+            || this.check(TokenType.GTE);
+    }
+
+    private parseAttributeCondition(): AttributeConditionNode {
+        const objToken = this.consume(TokenType.IDENTIFIER, "Expected object identifier for attribute condition");
+        return this.parseAttributeConditionFromIdent(objToken);
+    }
+
+    private parseAttributeConditionFromIdent(objToken: Token): AttributeConditionNode {
+        this.consume(TokenType.DOT, "Expected '.' in attribute path");
+        const fieldToken = this.consume(TokenType.IDENTIFIER, "Expected field name after '.'");
+
+        const left: AttributePathNode = {
+            nodeType: "AttributePath",
+            object: objToken.value,
+            field: fieldToken.value,
+            line: objToken.line,
+            column: objToken.column
+        };
+
+        const opToken = this.advance();
+        const operator = opToken.value as ComparisonOperator;
+
+        // Right side: string literal or attribute path
+        let right: AttributePathNode | string;
+        if (this.match(TokenType.STRING_LITERAL)) {
+            right = this.previous().value;
+        } else if (this.match(TokenType.IDENTIFIER)) {
+            const rightObj = this.previous();
+            if (this.match(TokenType.DOT)) {
+                const rightField = this.consume(TokenType.IDENTIFIER, "Expected field name after '.' in right-hand attribute path");
+                right = {
+                    nodeType: "AttributePath",
+                    object: rightObj.value,
+                    field: rightField.value,
+                    line: rightObj.line,
+                    column: rightObj.column
+                };
+            } else {
+                // treat as a plain string literal value
+                right = rightObj.value;
+            }
+        } else {
+            const tok = this.peek();
+            throw new Error(`Parse Error: Expected string literal or attribute path in ABAC condition at line ${tok.line}, column ${tok.column}`);
+        }
+
+        return {
+            nodeType: "AttributeCondition",
+            left,
+            operator,
+            right,
+            line: objToken.line,
+            column: objToken.column
+        };
+    }
+
+    // ─── Parser Primitives ────────────────────────────────────────────────────
 
     private match(...types: TokenType[]): boolean {
         for (const type of types) {

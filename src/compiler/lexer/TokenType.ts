@@ -8,6 +8,7 @@ export enum TokenType {
     MODULE = "MODULE",
     NAMESPACE = "NAMESPACE",
     EXTENDS = "EXTENDS",
+    IF = "IF",
 
     AND = "AND",
     OR = "OR",
@@ -23,6 +24,12 @@ export enum TokenType {
     RPAREN = "RPAREN",
 
     EQUALS = "EQUALS",
+    EQEQ = "EQEQ",
+    NEQ = "NEQ",
+    LT = "LT",
+    GT = "GT",
+    LTE = "LTE",
+    GTE = "GTE",
     COLON = "COLON",
     COLON_COLON = "COLON_COLON",
     DOT = "DOT",
