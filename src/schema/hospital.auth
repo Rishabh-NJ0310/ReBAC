@@ -1,4 +1,4 @@
-# Hospital Authorization Schema (ADSL v3.0 Typed Schema)
+# Hospital Authorization Schema (ADSL v3.1 Zanzibar Schema)
 
 subject user
 subject group
@@ -8,31 +8,23 @@ resource patient {
     relation contains  : ward
     relation admin     : user
 
-    permission view =
-        doctor_of
-        OR contains -> view
-
-    permission edit =
-        doctor_of
-
-    permission delete =
-        admin
+    permission medical_staff = doctor_of
+    permission view = medical_staff OR contains.view
+    permission edit = doctor_of
+    permission delete = admin
 }
 
 resource ward {
     relation assigned_nurse : user
     relation contains       : department
 
-    permission view =
-        assigned_nurse
-        OR contains -> view
+    permission view = assigned_nurse OR contains.view
 }
 
 resource department {
     relation head_of : user
 
-    permission view =
-        head_of
+    permission view = head_of
 }
 
 resource bill {
@@ -40,18 +32,13 @@ resource bill {
     relation pharmacist_of : pharmacy
     relation contains      : department
 
-    permission view = 
-        has_bill
-        OR contains -> view
+    permission view = has_bill OR contains.view
 }
 
 resource pharmacy {
     relation pharmacist_of : user
     relation contains      : department
 
-    permission has_bill =
-        pharmacist_of
-
-    permission view = 
-        contains -> view
+    permission has_bill = pharmacist_of
+    permission view = contains.view
 }

@@ -1,5 +1,6 @@
 import { GraphRepository } from "./GraphRepository.js";
 import { RebacSchema, schema as defaultSchema, RuleGroup, Rule } from "./Schema.js";
+import prisma from "../prisma/client.js";
 
 export interface TraceStep {
     resourceId: number;
@@ -11,6 +12,7 @@ export interface TraceStep {
 
 export interface EvaluationContext {
     userId: number;
+    subjectSet?: Set<number>;
     permission: string;
     processing: Set<string>;
     memo: Map<string, boolean>;
@@ -47,7 +49,6 @@ export class RuleEngine {
             if ("operator" in permissionConfig) {
                 result = await this.evaluateOperator(context, resource, permissionConfig);
             } else if (Array.isArray(permissionConfig)) {
-                // Backward compatibility: wrap array in an implicit OR operator
                 result = await this.evaluateOperator(context, resource, {
                     operator: "OR",
                     rules: permissionConfig
@@ -113,6 +114,16 @@ export class RuleEngine {
         rule: Rule
     ): Promise<boolean> {
         if (rule.relation && !rule.permission) {
+            // Check if rule.relation is a Computed Userset (Permission referencing another Permission in the same resource)
+            const targetPermConfig = this.schema[resource.type]?.[rule.relation];
+            if (targetPermConfig) {
+                const subContext: EvaluationContext = {
+                    ...context,
+                    permission: rule.relation
+                };
+                return this.checkPermission(subContext, resource);
+            }
+
             return this.evaluateDirect(context, resource, rule);
         } else if (rule.relation && rule.permission) {
             return this.evaluateRecursive(context, resource, rule);
@@ -125,11 +136,28 @@ export class RuleEngine {
         resource: { id: number; type: string },
         rule: Rule
     ): Promise<boolean> {
-        const outcome = await this.repository.findDirectRelationship({
-            userSubjectId: context.userId,
-            objectId: resource.id,
-            relation: rule.relation
-        });
+        let outcome = false;
+
+        if (context.subjectSet && context.subjectSet.size > 0) {
+            const subjectIds = Array.from(context.subjectSet);
+            const rel = await prisma.relationship.findFirst({
+                where: {
+                    relation: rule.relation,
+                    objectId: resource.id,
+                    OR: [
+                        { subjectId: { in: subjectIds } },
+                        { userSubjectId: context.userId }
+                    ]
+                }
+            });
+            outcome = rel !== null;
+        } else {
+            outcome = await this.repository.findDirectRelationship({
+                userSubjectId: context.userId,
+                objectId: resource.id,
+                relation: rule.relation
+            });
+        }
 
         context.trace.push({
             resourceId: resource.id,
@@ -155,11 +183,8 @@ export class RuleEngine {
         let outcome = false;
         for (const parent of parents) {
             const subContext: EvaluationContext = {
-                userId: context.userId,
-                permission: rule.permission!,
-                processing: context.processing,
-                memo: context.memo,
-                trace: context.trace
+                ...context,
+                permission: rule.permission!
             };
 
             const allowed = await this.checkPermission(subContext, parent);

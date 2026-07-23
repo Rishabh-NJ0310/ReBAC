@@ -69,6 +69,10 @@ export class Lexer {
                 tokens.push(this.makeToken(TokenType.COLON, ":"));
                 continue;
             }
+            if (char === '.') {
+                tokens.push(this.makeToken(TokenType.DOT, "."));
+                continue;
+            }
 
             // 5. Identifiers & Keywords
             if (this.isAlphaOrUnderscore(char)) {

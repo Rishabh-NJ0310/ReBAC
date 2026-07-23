@@ -8,8 +8,11 @@ import {
     RelationNode
 } from "../ast/Nodes.js";
 import { SymbolTable, ResourceSymbol, RelationSymbol } from "../symbol/SymbolTable.js";
+import { PermissionDependencyGraph } from "./PermissionDependencyGraph.js";
 
 export class SemanticAnalyzer {
+    private dependencyGraph = new PermissionDependencyGraph();
+
     public analyze(program: ProgramNode): SymbolTable {
         const symbolTable = new SymbolTable();
 
@@ -64,7 +67,12 @@ export class SemanticAnalyzer {
             }
         }
 
-        // Pass 2: Type Checking & Cross-Resource Symbol Resolution
+        // Pass 2: Circular Dependency Check on Permission Graphs
+        for (const resourceNode of program.resources) {
+            this.dependencyGraph.checkCycles(resourceNode);
+        }
+
+        // Pass 3: Type Checking & Symbol Validation
         for (const resourceNode of program.resources) {
             const resourceSymbol = symbolTable.getResource(resourceNode.name)!;
 
@@ -98,21 +106,25 @@ export class SemanticAnalyzer {
     ): void {
         if (expr.nodeType === "Relation") {
             const relNode = expr as RelationNode;
-            const relSymbol = currentResource.relations.get(relNode.relation);
+            const hasRel = currentResource.relations.has(relNode.relation);
+            const hasPerm = currentResource.permissions.has(relNode.relation);
 
-            if (!relSymbol) {
+            if (!hasRel && !hasPerm) {
                 throw new Error(
-                    `Semantic Error: Undeclared relation '${relNode.relation}' referenced in permission '${permissionName}' of resource '${currentResource.name}' at line ${relNode.line}, column ${relNode.column}. Add 'relation ${relNode.relation}' to declare it.`
+                    `Semantic Error: Symbol '${relNode.relation}' referenced in permission '${permissionName}' of resource '${currentResource.name}' at line ${relNode.line}, column ${relNode.column} is neither a declared relation nor a permission.`
                 );
             }
 
             // Recursive relation check: relation -> targetPermission
-            if (relNode.permission && relSymbol.targetType && !symbolTable.hasSubject(relSymbol.targetType)) {
-                const targetResource = symbolTable.getResource(relSymbol.targetType);
-                if (targetResource && !targetResource.permissions.has(relNode.permission)) {
-                    throw new Error(
-                        `Type Error: Relation '${relNode.relation}' targets type '${relSymbol.targetType}', but '${relSymbol.targetType}' has no permission '${relNode.permission}' referenced at line ${relNode.line}, column ${relNode.column}`
-                    );
+            if (relNode.permission && hasRel) {
+                const relSymbol = currentResource.relations.get(relNode.relation)!;
+                if (relSymbol.targetType && !symbolTable.hasSubject(relSymbol.targetType)) {
+                    const targetResource = symbolTable.getResource(relSymbol.targetType);
+                    if (targetResource && !targetResource.permissions.has(relNode.permission)) {
+                        throw new Error(
+                            `Type Error: Relation '${relNode.relation}' targets type '${relSymbol.targetType}', but '${relSymbol.targetType}' has no permission '${relNode.permission}' referenced at line ${relNode.line}, column ${relNode.column}`
+                        );
+                    }
                 }
             }
         } else if (expr.nodeType === "BinaryExpression") {

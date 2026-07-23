@@ -1,5 +1,6 @@
 import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, CreateRelationshipData } from "./GraphRepository.js";
 import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
+import { SubjectResolver } from "./SubjectResolver.js";
 import { schema } from "./Schema.js";
 
 export class AuthorizationService {
@@ -40,8 +41,12 @@ export class AuthorizationService {
             return { allowed: false, trace: [] };
         }
 
+        const subjectResolver = new SubjectResolver(this.repository);
+        const subjectSet = await subjectResolver.resolveSubjectSet(params.userId);
+
         const context: EvaluationContext = {
             userId: params.userId,
+            subjectSet,
             permission: params.permission,
             processing: new Set<string>(),
             memo: new Map<string, boolean>(),

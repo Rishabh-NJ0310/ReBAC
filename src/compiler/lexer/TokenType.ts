@@ -18,6 +18,7 @@ export enum TokenType {
 
     EQUALS = "EQUALS",
     COLON = "COLON",
+    DOT = "DOT",
     ARROW = "ARROW",
 
     EOF = "EOF"

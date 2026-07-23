@@ -196,8 +196,8 @@ export class Parser {
     private parseRelationFromToken(relToken: Token): RelationNode {
         let permission: string | undefined = undefined;
 
-        if (this.match(TokenType.ARROW)) {
-            const permToken = this.consume(TokenType.IDENTIFIER, "Expected permission identifier after '->'");
+        if (this.match(TokenType.ARROW) || this.match(TokenType.DOT)) {
+            const permToken = this.consume(TokenType.IDENTIFIER, "Expected permission identifier after '->' or '.'");
             permission = permToken.value;
         }
 
