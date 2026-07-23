@@ -1,9 +1,9 @@
-# Hospital Authorization Schema (ADSL v1.0)
+# Hospital Authorization Schema (ADSL v2.3 Typed Schema)
 
 resource patient {
-    relation doctor_of
-    relation contains
-    relation admin
+    relation doctor_of : user
+    relation contains  : ward
+    relation admin     : user
 
     permission view =
         doctor_of
@@ -17,8 +17,8 @@ resource patient {
 }
 
 resource ward {
-    relation assigned_nurse
-    relation contains
+    relation assigned_nurse : user
+    relation contains       : department
 
     permission view =
         assigned_nurse
@@ -26,17 +26,16 @@ resource ward {
 }
 
 resource department {
-    relation head_of
+    relation head_of : user
 
     permission view =
         head_of
 }
 
 resource bill {
-    relation has_bill
-    relation pharmacist_of
-    relation contains
-
+    relation has_bill      : user
+    relation pharmacist_of : pharmacy
+    relation contains      : department
 
     permission view = 
         has_bill
@@ -45,8 +44,11 @@ resource bill {
 }
 
 resource pharmacy {
-    relation pharmacist_of
-    relation contains
+    relation pharmacist_of : user
+    relation contains      : department
+
+    permission has_bill =
+        pharmacist_of
 
     permission view = 
         contains -> view

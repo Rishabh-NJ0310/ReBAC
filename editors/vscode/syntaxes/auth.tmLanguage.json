@@ -64,22 +64,34 @@
     "resource-decl": {
       "match": "\\b(resource)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "keyword.control.auth" },
-        "2": { "name": "entity.name.type.class.auth" }
+        "1": {
+          "name": "keyword.control.auth"
+        },
+        "2": {
+          "name": "entity.name.type.class.auth"
+        }
       }
     },
     "relation-decl": {
       "match": "\\b(relation)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "keyword.control.auth" },
-        "2": { "name": "variable.other.property.auth" }
+        "1": {
+          "name": "keyword.control.auth"
+        },
+        "2": {
+          "name": "variable.other.property.auth"
+        }
       }
     },
     "permission-decl": {
       "match": "\\b(permission)\\s+([a-zA-Z_][a-zA-Z0-9_]*)",
       "captures": {
-        "1": { "name": "keyword.control.auth" },
-        "2": { "name": "entity.name.function.auth" }
+        "1": {
+          "name": "keyword.control.auth"
+        },
+        "2": {
+          "name": "entity.name.function.auth"
+        }
       }
     },
     "punctuation": {

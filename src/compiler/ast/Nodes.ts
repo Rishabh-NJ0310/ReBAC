@@ -5,7 +5,8 @@ export type ASTNodeType =
     | "Permission"
     | "BinaryExpression"
     | "UnaryExpression"
-    | "Relation";
+    | "Relation"
+    | "BooleanLiteral";
 
 export interface ASTNode {
     nodeType: ASTNodeType;
@@ -28,6 +29,7 @@ export interface ResourceNode extends ASTNode {
 export interface RelationDeclNode extends ASTNode {
     nodeType: "RelationDecl";
     name: string;
+    targetType?: string;
 }
 
 export interface PermissionNode extends ASTNode {
@@ -39,7 +41,8 @@ export interface PermissionNode extends ASTNode {
 export type ExpressionNode =
     | BinaryExpressionNode
     | UnaryExpressionNode
-    | RelationNode;
+    | RelationNode
+    | BooleanLiteralNode;
 
 export interface BinaryExpressionNode extends ASTNode {
     nodeType: "BinaryExpression";
@@ -58,4 +61,9 @@ export interface RelationNode extends ASTNode {
     nodeType: "Relation";
     relation: string;
     permission?: string;
+}
+
+export interface BooleanLiteralNode extends ASTNode {
+    nodeType: "BooleanLiteral";
+    value: boolean;
 }

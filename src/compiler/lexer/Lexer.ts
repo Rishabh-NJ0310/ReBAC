@@ -12,7 +12,9 @@ export class Lexer {
         permission: TokenType.PERMISSION,
         AND: TokenType.AND,
         OR: TokenType.OR,
-        NOT: TokenType.NOT
+        NOT: TokenType.NOT,
+        true: TokenType.BOOLEAN_LITERAL,
+        false: TokenType.BOOLEAN_LITERAL
     };
 
     constructor(private source: string) {}
@@ -60,6 +62,10 @@ export class Lexer {
             }
             if (char === '=') {
                 tokens.push(this.makeToken(TokenType.EQUALS, "="));
+                continue;
+            }
+            if (char === ':') {
+                tokens.push(this.makeToken(TokenType.COLON, ":"));
                 continue;
             }
 

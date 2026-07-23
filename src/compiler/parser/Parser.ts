@@ -8,7 +8,8 @@ import {
     ExpressionNode,
     BinaryExpressionNode,
     UnaryExpressionNode,
-    RelationNode
+    RelationNode,
+    BooleanLiteralNode
 } from "../ast/Nodes.js";
 
 export class Parser {
@@ -49,9 +50,17 @@ export class Parser {
             if (this.match(TokenType.RELATION)) {
                 const relToken = this.previous();
                 const relName = this.consume(TokenType.IDENTIFIER, "Expected relation identifier after 'relation'");
+                let targetType: string | undefined = undefined;
+
+                if (this.match(TokenType.COLON)) {
+                    const targetTypeToken = this.consume(TokenType.IDENTIFIER, "Expected target resource type identifier after ':'");
+                    targetType = targetTypeToken.value;
+                }
+
                 relations.push({
                     nodeType: "RelationDecl",
                     name: relName.value,
+                    targetType,
                     line: relToken.line,
                     column: relToken.column
                 });
@@ -148,6 +157,16 @@ export class Parser {
             const expr = this.parseExpression();
             this.consume(TokenType.RPAREN, "Expected ')' after expression");
             return expr;
+        }
+
+        if (this.match(TokenType.BOOLEAN_LITERAL)) {
+            const token = this.previous();
+            return {
+                nodeType: "BooleanLiteral",
+                value: token.value === "true",
+                line: token.line,
+                column: token.column
+            } as BooleanLiteralNode;
         }
 
         if (this.match(TokenType.IDENTIFIER)) {

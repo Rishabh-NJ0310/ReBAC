@@ -5,7 +5,8 @@ import {
     PermissionNode,
     BinaryExpressionNode,
     UnaryExpressionNode,
-    RelationNode
+    RelationNode,
+    BooleanLiteralNode
 } from "./Nodes.js";
 
 export interface ASTVisitor<R = void> {
@@ -16,4 +17,5 @@ export interface ASTVisitor<R = void> {
     visitBinaryExpression(node: BinaryExpressionNode): R;
     visitUnaryExpression(node: UnaryExpressionNode): R;
     visitRelation(node: RelationNode): R;
+    visitBooleanLiteral(node: BooleanLiteralNode): R;
 }

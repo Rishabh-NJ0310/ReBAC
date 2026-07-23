@@ -3,7 +3,8 @@ import {
     ExpressionNode,
     BinaryExpressionNode,
     UnaryExpressionNode,
-    RelationNode
+    RelationNode,
+    BooleanLiteralNode
 } from "../ast/Nodes.js";
 import { RebacSchema, RuleGroup, Rule } from "../../authorization/Schema.js";
 
@@ -64,6 +65,11 @@ export class RuleGroupTransformer {
                 operator: "NOT",
                 rules: [operand]
             };
+        }
+
+        if (expr.nodeType === "BooleanLiteral") {
+            const bool = expr as BooleanLiteralNode;
+            return { relation: bool.value ? "__TRUE__" : "__FALSE__" };
         }
 
         throw new Error(`Transformation Error: Unknown AST expression node type`);

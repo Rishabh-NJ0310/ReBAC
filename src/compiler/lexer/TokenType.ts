@@ -7,6 +7,7 @@ export enum TokenType {
     OR = "OR",
     NOT = "NOT",
 
+    BOOLEAN_LITERAL = "BOOLEAN_LITERAL",
     IDENTIFIER = "IDENTIFIER",
 
     LBRACE = "LBRACE",
@@ -15,6 +16,7 @@ export enum TokenType {
     RPAREN = "RPAREN",
 
     EQUALS = "EQUALS",
+    COLON = "COLON",
     ARROW = "ARROW",
 
     EOF = "EOF"
