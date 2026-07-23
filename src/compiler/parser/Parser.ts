@@ -2,6 +2,9 @@ import { Token } from "../lexer/Token.js";
 import { TokenType } from "../lexer/TokenType.js";
 import {
     ProgramNode,
+    ImportDeclNode,
+    ModuleDeclNode,
+    NamespaceDeclNode,
     SubjectDeclNode,
     ResourceNode,
     RelationDeclNode,
@@ -20,26 +23,86 @@ export class Parser {
 
     public parse(): ProgramNode {
         const startToken = this.peek();
+        const imports: ImportDeclNode[] = [];
+        const modules: ModuleDeclNode[] = [];
+        const namespaces: NamespaceDeclNode[] = [];
         const subjects: SubjectDeclNode[] = [];
         const resources: ResourceNode[] = [];
 
         while (!this.isAtEnd()) {
-            if (this.match(TokenType.SUBJECT)) {
+            if (this.match(TokenType.IMPORT)) {
+                imports.push(this.parseImportDecl());
+            } else if (this.match(TokenType.MODULE)) {
+                modules.push(this.parseModuleDecl());
+            } else if (this.match(TokenType.NAMESPACE)) {
+                namespaces.push(this.parseNamespaceDecl());
+            } else if (this.match(TokenType.SUBJECT)) {
                 subjects.push(this.parseSubjectDecl());
             } else if (this.match(TokenType.RESOURCE)) {
                 resources.push(this.parseResource());
             } else {
                 const token = this.peek();
-                throw new Error(`Parse Error: Expected 'subject' or 'resource' keyword at line ${token.line}, column ${token.column}, found '${token.value}'`);
+                throw new Error(`Parse Error: Unexpected token '${token.value}' at line ${token.line}, column ${token.column}`);
             }
         }
 
         return {
             nodeType: "Program",
+            imports,
+            modules,
+            namespaces,
             subjects,
             resources,
             line: startToken.line,
             column: startToken.column
+        };
+    }
+
+    private parseImportDecl(): ImportDeclNode {
+        const importToken = this.previous();
+        const pathToken = this.consume(TokenType.STRING_LITERAL, "Expected string literal path after 'import'");
+        return {
+            nodeType: "ImportDecl",
+            path: pathToken.value,
+            line: importToken.line,
+            column: importToken.column
+        };
+    }
+
+    private parseModuleDecl(): ModuleDeclNode {
+        const moduleToken = this.previous();
+        const nameToken = this.consume(TokenType.IDENTIFIER, "Expected module name identifier after 'module'");
+        return {
+            nodeType: "ModuleDecl",
+            name: nameToken.value,
+            line: moduleToken.line,
+            column: moduleToken.column
+        };
+    }
+
+    private parseNamespaceDecl(): NamespaceDeclNode {
+        const nsToken = this.previous();
+        const nameToken = this.consume(TokenType.IDENTIFIER, "Expected namespace name identifier after 'namespace'");
+        const resources: ResourceNode[] = [];
+
+        if (this.match(TokenType.LBRACE)) {
+            while (!this.check(TokenType.RBRACE) && !this.isAtEnd()) {
+                if (this.match(TokenType.RESOURCE)) {
+                    resources.push(this.parseResource());
+                } else {
+                    const token = this.peek();
+                    throw new Error(`Parse Error: Expected 'resource' inside namespace '${nameToken.value}' at line ${token.line}, column ${token.column}`);
+                }
+            }
+            this.consume(TokenType.RBRACE, "Expected '}' to close namespace block");
+        }
+
+        return {
+            nodeType: "NamespaceDecl",
+            name: nameToken.value,
+            resources,
+            line: nsToken.line,
+            column: nsToken.column
         };
     }
 
@@ -57,6 +120,13 @@ export class Parser {
     private parseResource(): ResourceNode {
         const resourceToken = this.previous();
         const nameToken = this.consume(TokenType.IDENTIFIER, "Expected resource identifier after 'resource'");
+        let extendsParent: string | undefined = undefined;
+
+        if (this.match(TokenType.EXTENDS)) {
+            const parentToken = this.consume(TokenType.IDENTIFIER, "Expected parent resource identifier after 'extends'");
+            extendsParent = parentToken.value;
+        }
+
         this.consume(TokenType.LBRACE, "Expected '{' to start resource block");
 
         const relations: RelationDeclNode[] = [];
@@ -103,6 +173,7 @@ export class Parser {
         return {
             nodeType: "Resource",
             name: nameToken.value,
+            extends: extendsParent,
             relations,
             permissions,
             line: resourceToken.line,

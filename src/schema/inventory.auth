@@ -1,0 +1,19 @@
+# Inventory & Pharmacy Domain Schema
+
+subject user
+subject group
+
+resource bill {
+    relation has_bill : user
+    relation contains : department
+
+    permission view = has_bill OR contains.view
+}
+
+resource pharmacy {
+    relation pharmacist_of : user
+    relation contains : department
+
+    permission has_bill = pharmacist_of
+    permission view = contains.view
+}

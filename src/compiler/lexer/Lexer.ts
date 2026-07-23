@@ -11,6 +11,10 @@ export class Lexer {
         subject: TokenType.SUBJECT,
         relation: TokenType.RELATION,
         permission: TokenType.PERMISSION,
+        import: TokenType.IMPORT,
+        module: TokenType.MODULE,
+        namespace: TokenType.NAMESPACE,
+        extends: TokenType.EXTENDS,
         AND: TokenType.AND,
         OR: TokenType.OR,
         NOT: TokenType.NOT,
@@ -38,9 +42,13 @@ export class Lexer {
                 continue;
             }
 
-            // 3. Two-character symbols (->)
+            // 3. Two-character symbols (-> or ::)
             if (char === '-' && this.peek() === '>') {
                 tokens.push(this.makeToken(TokenType.ARROW, "->", 2));
+                continue;
+            }
+            if (char === ':' && this.peek() === ':') {
+                tokens.push(this.makeToken(TokenType.COLON_COLON, "::", 2));
                 continue;
             }
 
@@ -74,7 +82,13 @@ export class Lexer {
                 continue;
             }
 
-            // 5. Identifiers & Keywords
+            // 5. String Literals ("..." or '...')
+            if (char === '"' || char === "'") {
+                tokens.push(this.readString(char));
+                continue;
+            }
+
+            // 6. Identifiers & Keywords
             if (this.isAlphaOrUnderscore(char)) {
                 tokens.push(this.readIdentifier());
                 continue;
@@ -91,6 +105,31 @@ export class Lexer {
         });
 
         return tokens;
+    }
+
+    private readString(quoteChar: string): Token {
+        const startLine = this.line;
+        const startColumn = this.column;
+        this.advance(); // Skip opening quote
+
+        let value = "";
+        while (this.position < this.source.length && this.source[this.position] !== quoteChar) {
+            value += this.source[this.position];
+            this.advance();
+        }
+
+        if (this.position >= this.source.length) {
+            throw new Error(`Lexical Error: Unterminated string literal at line ${startLine}, column ${startColumn}`);
+        }
+
+        this.advance(); // Skip closing quote
+
+        return {
+            type: TokenType.STRING_LITERAL,
+            value,
+            line: startLine,
+            column: startColumn
+        };
     }
 
     private isWhitespace(char: string): boolean {

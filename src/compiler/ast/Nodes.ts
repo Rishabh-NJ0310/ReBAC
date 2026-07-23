@@ -1,5 +1,8 @@
 export type ASTNodeType =
     | "Program"
+    | "ImportDecl"
+    | "ModuleDecl"
+    | "NamespaceDecl"
     | "SubjectDecl"
     | "Resource"
     | "RelationDecl"
@@ -15,6 +18,22 @@ export interface ASTNode {
     column: number;
 }
 
+export interface ImportDeclNode extends ASTNode {
+    nodeType: "ImportDecl";
+    path: string;
+}
+
+export interface ModuleDeclNode extends ASTNode {
+    nodeType: "ModuleDecl";
+    name: string;
+}
+
+export interface NamespaceDeclNode extends ASTNode {
+    nodeType: "NamespaceDecl";
+    name: string;
+    resources: ResourceNode[];
+}
+
 export interface SubjectDeclNode extends ASTNode {
     nodeType: "SubjectDecl";
     name: string;
@@ -22,6 +41,9 @@ export interface SubjectDeclNode extends ASTNode {
 
 export interface ProgramNode extends ASTNode {
     nodeType: "Program";
+    imports: ImportDeclNode[];
+    modules: ModuleDeclNode[];
+    namespaces: NamespaceDeclNode[];
     subjects: SubjectDeclNode[];
     resources: ResourceNode[];
 }
@@ -29,6 +51,7 @@ export interface ProgramNode extends ASTNode {
 export interface ResourceNode extends ASTNode {
     nodeType: "Resource";
     name: string;
+    extends?: string;
     relations: RelationDeclNode[];
     permissions: PermissionNode[];
 }

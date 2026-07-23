@@ -1,44 +1,4 @@
-# Hospital Authorization Schema (ADSL v3.1 Zanzibar Schema)
+# Hospital Root Schema (ADSL v3.2 Language Specification)
 
-subject user
-subject group
-
-resource patient {
-    relation doctor_of : user
-    relation contains  : ward
-    relation admin     : user
-
-    permission medical_staff = doctor_of
-    permission view = medical_staff OR contains.view
-    permission edit = doctor_of
-    permission delete = admin
-}
-
-resource ward {
-    relation assigned_nurse : user
-    relation contains       : department
-
-    permission view = assigned_nurse OR contains.view
-}
-
-resource department {
-    relation head_of : user
-
-    permission view = head_of
-}
-
-resource bill {
-    relation has_bill      : user
-    relation pharmacist_of : pharmacy
-    relation contains      : department
-
-    permission view = has_bill OR contains.view
-}
-
-resource pharmacy {
-    relation pharmacist_of : user
-    relation contains      : department
-
-    permission has_bill = pharmacist_of
-    permission view = contains.view
-}
+import "clinical.auth"
+import "inventory.auth"

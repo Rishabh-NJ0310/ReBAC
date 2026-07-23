@@ -4,11 +4,17 @@ export enum TokenType {
     RELATION = "RELATION",
     PERMISSION = "PERMISSION",
 
+    IMPORT = "IMPORT",
+    MODULE = "MODULE",
+    NAMESPACE = "NAMESPACE",
+    EXTENDS = "EXTENDS",
+
     AND = "AND",
     OR = "OR",
     NOT = "NOT",
 
     BOOLEAN_LITERAL = "BOOLEAN_LITERAL",
+    STRING_LITERAL = "STRING_LITERAL",
     IDENTIFIER = "IDENTIFIER",
 
     LBRACE = "LBRACE",
@@ -18,6 +24,7 @@ export enum TokenType {
 
     EQUALS = "EQUALS",
     COLON = "COLON",
+    COLON_COLON = "COLON_COLON",
     DOT = "DOT",
     ARROW = "ARROW",
 
