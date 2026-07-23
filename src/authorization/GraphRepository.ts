@@ -1,5 +1,5 @@
 import prisma from "../prisma/client.js";
-import { Resource } from "../generated/prisma/client.js";
+import { Resource, User, Group, Subject } from "../generated/prisma/client.js";
 
 export interface CreateUserData {
     name: string;
@@ -14,14 +14,40 @@ export interface CreateResourceData {
 
 export interface CreateRelationshipData {
     relation: string;
+    subjectId?: number;
     userSubjectId?: number;
     resourceSubjectId?: number;
-    objectId: number;
+    targetSubjectId?: number;
+    objectId?: number;
 }
 
 export class GraphRepository {
     async createUser(data: CreateUserData) {
-        return prisma.user.create({ data });
+        const subject = await prisma.subject.create({
+            data: { type: "user", name: data.name }
+        });
+
+        return prisma.user.create({
+            data: {
+                name: data.name,
+                email: data.email,
+                password: data.password,
+                subjectId: subject.id
+            }
+        });
+    }
+
+    async createGroup(name: string) {
+        const subject = await prisma.subject.create({
+            data: { type: "group", name }
+        });
+
+        return prisma.group.create({
+            data: {
+                name,
+                subjectId: subject.id
+            }
+        });
     }
 
     async createResource(data: CreateResourceData) {
@@ -29,16 +55,14 @@ export class GraphRepository {
     }
 
     async createRelationship(data: CreateRelationshipData) {
-        if (!data.userSubjectId && !data.resourceSubjectId) {
-            throw new Error("A relationship must have either a userSubjectId or resourceSubjectId.");
-        }
-
         return prisma.relationship.create({
             data: {
                 relation: data.relation,
+                subjectId: data.subjectId ?? null,
                 userSubjectId: data.userSubjectId ?? null,
                 resourceSubjectId: data.resourceSubjectId ?? null,
-                objectId: data.objectId
+                targetSubjectId: data.targetSubjectId ?? null,
+                objectId: data.objectId ?? null
             }
         });
     }
@@ -49,24 +73,54 @@ export class GraphRepository {
         });
     }
 
+    async getReachableSubjectIds(startSubjectId: number): Promise<number[]> {
+        const visited = new Set<number>();
+        const queue = [startSubjectId];
+
+        while (queue.length > 0) {
+            const currentId = queue.shift()!;
+            if (visited.has(currentId)) continue;
+            visited.add(currentId);
+
+            const memberRels = await prisma.relationship.findMany({
+                where: {
+                    subjectId: currentId,
+                    relation: "member",
+                    targetSubjectId: { not: null }
+                }
+            });
+
+            for (const rel of memberRels) {
+                if (rel.targetSubjectId && !visited.has(rel.targetSubjectId)) {
+                    queue.push(rel.targetSubjectId);
+                }
+            }
+        }
+
+        return Array.from(visited);
+    }
+
     async findDirectRelationship(params: {
         userSubjectId: number;
         objectId: number;
         relation: string;
     }): Promise<boolean> {
-        console.log("QUERY");
-    
-        console.log(params);
+        const user = await prisma.user.findUnique({ where: { id: params.userSubjectId } });
+        const startSubjectId = user?.subjectId ?? params.userSubjectId;
+
+        const reachableSubjectIds = await this.getReachableSubjectIds(startSubjectId);
+
         const rel = await prisma.relationship.findFirst({
             where: {
-                userSubjectId: params.userSubjectId,
+                relation: params.relation,
                 objectId: params.objectId,
-                relation: params.relation
+                OR: [
+                    { subjectId: { in: reachableSubjectIds } },
+                    { userSubjectId: params.userSubjectId }
+                ]
             }
         });
-        console.log("FOUND");
 
-        console.log(rel);
         return rel !== null;
     }
 
@@ -109,28 +163,40 @@ export class GraphRepository {
             .filter((res): res is Resource => res !== null);
     }
 
-    async findRelationships(filter: {
-        userSubjectId?: number;
-        resourceSubjectId?: number;
-        objectId?: number;
-        relation?: string;
-    }) {
+    async findRelationships(filter: any) {
         return prisma.relationship.findMany({
             where: filter
         });
     }
 
     async getGraphData() {
-        const users = await prisma.user.findMany();
+        const users = await prisma.user.findMany({ include: { subject: true } });
+        const groups = await prisma.group.findMany({ include: { subject: true } });
         const resources = await prisma.resource.findMany();
-        const relationships = await prisma.relationship.findMany();
+        const relationships = await prisma.relationship.findMany({
+            include: {
+                subject: true,
+                targetSubject: true,
+                object: true,
+                userSubject: true,
+                resourceSubject: true
+            }
+        });
 
         const nodes = [
             ...users.map((u) => ({
                 id: `user:${u.id}`,
+                subjectId: u.subjectId,
                 label: `User: ${u.name}`,
                 type: "user",
                 details: { name: u.name, email: u.email }
+            })),
+            ...groups.map((g) => ({
+                id: `group:${g.id}`,
+                subjectId: g.subjectId,
+                label: `Group: ${g.name}`,
+                type: "group",
+                details: { name: g.name }
             })),
             ...resources.map((r) => ({
                 id: `resource:${r.id}`,
@@ -141,11 +207,31 @@ export class GraphRepository {
         ];
 
         const edges = relationships.map((r) => {
-            const source = r.userSubjectId ? `user:${r.userSubjectId}` : `resource:${r.resourceSubjectId}`;
+            let source = `subject:${r.subjectId}`;
+            if (r.userSubjectId) source = `user:${r.userSubjectId}`;
+            if (r.resourceSubjectId) source = `resource:${r.resourceSubjectId}`;
+            if (r.subject) {
+                if (r.subject.type === "user") {
+                    const u = users.find(usr => usr.subjectId === r.subjectId);
+                    if (u) source = `user:${u.id}`;
+                } else if (r.subject.type === "group") {
+                    const g = groups.find(grp => grp.subjectId === r.subjectId);
+                    if (g) source = `group:${g.id}`;
+                }
+            }
+
+            let target = `resource:${r.objectId}`;
+            if (r.targetSubjectId && r.targetSubject) {
+                if (r.targetSubject.type === "group") {
+                    const g = groups.find(grp => grp.subjectId === r.targetSubjectId);
+                    if (g) target = `group:${g?.id}`;
+                }
+            }
+
             return {
                 id: `edge:${r.id}`,
                 source,
-                target: `resource:${r.objectId}`,
+                target,
                 label: r.relation
             };
         });
@@ -154,7 +240,11 @@ export class GraphRepository {
     }
 
     async getUsers(): Promise<any[]> {
-        return prisma.user.findMany();
+        return prisma.user.findMany({ include: { subject: true } });
+    }
+
+    async getGroups(): Promise<any[]> {
+        return prisma.group.findMany({ include: { subject: true } });
     }
 
     async getResources(): Promise<any[]> {
@@ -174,7 +264,9 @@ export class GraphRepository {
     async deleteAll(): Promise<void> {
         await prisma.relationship.deleteMany();
         await prisma.user.deleteMany();
+        await prisma.group.deleteMany();
         await prisma.resource.deleteMany();
+        await prisma.subject.deleteMany();
     }
 }
 

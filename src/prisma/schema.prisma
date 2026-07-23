@@ -10,13 +10,42 @@ datasource db {
   provider = "postgresql"
 }
 
+model Subject {
+  id        Int      @id @default(autoincrement())
+  type      String   // "user", "group", "team", "resource"
+  name      String
+
+  user      User?
+  group     Group?
+
+  relationships          Relationship[] @relation("SubjectRelation")
+  targetRelationships    Relationship[] @relation("TargetSubjectRelation")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
 
+  subjectId Int      @unique
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
   relationships Relationship[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String
+
+  subjectId Int      @unique
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -35,20 +64,31 @@ model Resource {
 }
 
 model Relationship {
-  id Int @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
+  relation  String
 
-  relation String
+  // Generic Subject side (User, Group, etc.)
+  subjectId Int?
+  subject   Subject?  @relation("SubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
 
+  // Legacy userSubjectId / resourceSubjectId for backwards compatibility
   userSubjectId Int?
   userSubject   User? @relation(fields: [userSubjectId], references: [id])
 
   resourceSubjectId Int?
   resourceSubject   Resource? @relation("SubjectResource", fields: [resourceSubjectId], references: [id])
 
-  objectId Int
-  object   Resource @relation("TargetResource", fields: [objectId], references: [id])
+  // Subject side target (for group membership edges like 'Raj member Doctors')
+  targetSubjectId Int?
+  targetSubject   Subject? @relation("TargetSubjectRelation", fields: [targetSubjectId], references: [id], onDelete: Cascade)
+
+  // Resource side target (for permissions like 'Doctors doctor_of Patient101')
+  objectId Int?
+  object   Resource? @relation("TargetResource", fields: [objectId], references: [id])
 
   createdAt DateTime @default(now())
 
   @@index([objectId, relation])
+  @@index([subjectId, relation])
+  @@index([targetSubjectId, relation])
 }

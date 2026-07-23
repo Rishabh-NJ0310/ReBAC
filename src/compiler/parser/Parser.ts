@@ -2,6 +2,7 @@ import { Token } from "../lexer/Token.js";
 import { TokenType } from "../lexer/TokenType.js";
 import {
     ProgramNode,
+    SubjectDeclNode,
     ResourceNode,
     RelationDeclNode,
     PermissionNode,
@@ -19,22 +20,37 @@ export class Parser {
 
     public parse(): ProgramNode {
         const startToken = this.peek();
+        const subjects: SubjectDeclNode[] = [];
         const resources: ResourceNode[] = [];
 
         while (!this.isAtEnd()) {
-            if (this.match(TokenType.RESOURCE)) {
+            if (this.match(TokenType.SUBJECT)) {
+                subjects.push(this.parseSubjectDecl());
+            } else if (this.match(TokenType.RESOURCE)) {
                 resources.push(this.parseResource());
             } else {
                 const token = this.peek();
-                throw new Error(`Parse Error: Expected 'resource' keyword at line ${token.line}, column ${token.column}, found '${token.value}'`);
+                throw new Error(`Parse Error: Expected 'subject' or 'resource' keyword at line ${token.line}, column ${token.column}, found '${token.value}'`);
             }
         }
 
         return {
             nodeType: "Program",
+            subjects,
             resources,
             line: startToken.line,
             column: startToken.column
+        };
+    }
+
+    private parseSubjectDecl(): SubjectDeclNode {
+        const subjectToken = this.previous();
+        const nameToken = this.consume(TokenType.IDENTIFIER, "Expected subject type identifier after 'subject'");
+        return {
+            nodeType: "SubjectDecl",
+            name: nameToken.value,
+            line: subjectToken.line,
+            column: subjectToken.column
         };
     }
 
@@ -53,7 +69,7 @@ export class Parser {
                 let targetType: string | undefined = undefined;
 
                 if (this.match(TokenType.COLON)) {
-                    const targetTypeToken = this.consume(TokenType.IDENTIFIER, "Expected target resource type identifier after ':'");
+                    const targetTypeToken = this.consume(TokenType.IDENTIFIER, "Expected target resource or subject type identifier after ':'");
                     targetType = targetTypeToken.value;
                 }
 

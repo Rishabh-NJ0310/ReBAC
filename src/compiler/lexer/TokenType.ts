@@ -1,5 +1,6 @@
 export enum TokenType {
     RESOURCE = "RESOURCE",
+    SUBJECT = "SUBJECT",
     RELATION = "RELATION",
     PERMISSION = "PERMISSION",
 

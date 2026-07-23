@@ -13,6 +13,10 @@ export class AuthorizationService {
         return this.repository.createUser(data);
     }
 
+    async createGroup(name: string) {
+        return this.repository.createGroup(name);
+    }
+
     async createResource(data: CreateResourceData) {
         return this.repository.createResource(data);
     }
@@ -55,6 +59,10 @@ export class AuthorizationService {
 
     async getUsers(): Promise<any[]> {
         return this.repository.getUsers();
+    }
+
+    async getGroups(): Promise<any[]> {
+        return this.repository.getGroups();
     }
 
     async getResources(): Promise<any[]> {

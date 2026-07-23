@@ -1,5 +1,6 @@
 export type ASTNodeType =
     | "Program"
+    | "SubjectDecl"
     | "Resource"
     | "RelationDecl"
     | "Permission"
@@ -14,8 +15,14 @@ export interface ASTNode {
     column: number;
 }
 
+export interface SubjectDeclNode extends ASTNode {
+    nodeType: "SubjectDecl";
+    name: string;
+}
+
 export interface ProgramNode extends ASTNode {
     nodeType: "Program";
+    subjects: SubjectDeclNode[];
     resources: ResourceNode[];
 }
 

@@ -11,6 +11,17 @@ export const setUser = async (req: Request, res: Response) => {
     }
 };
 
+export const setGroup = async (req: Request, res: Response) => {
+    try {
+        const { name } = req.body;
+        const group = await authorizationService.createGroup(name);
+        res.status(201).json(group);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 export const setResource = async (req: Request, res: Response) => {
     try {
         const resource = await authorizationService.createResource(req.body);

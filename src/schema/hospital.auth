@@ -1,4 +1,7 @@
-# Hospital Authorization Schema (ADSL v2.3 Typed Schema)
+# Hospital Authorization Schema (ADSL v3.0 Typed Schema)
+
+subject user
+subject group
 
 resource patient {
     relation doctor_of : user
@@ -39,7 +42,6 @@ resource bill {
 
     permission view = 
         has_bill
-        OR pharmacist_of -> has_bill
         OR contains -> view
 }
 

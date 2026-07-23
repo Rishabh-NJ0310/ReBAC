@@ -13,6 +13,11 @@ export class SemanticAnalyzer {
     public analyze(program: ProgramNode): SymbolTable {
         const symbolTable = new SymbolTable();
 
+        // Pass 0: Populate Subjects
+        for (const subNode of program.subjects) {
+            symbolTable.defineSubject(subNode.name);
+        }
+
         // Pass 1: Symbol Table Construction & Local Duplicate Validation
         for (const resourceNode of program.resources) {
             if (symbolTable.hasResource(resourceNode.name)) {
@@ -63,12 +68,14 @@ export class SemanticAnalyzer {
         for (const resourceNode of program.resources) {
             const resourceSymbol = symbolTable.getResource(resourceNode.name)!;
 
-            // 1. Check target resource types on relations
+            // 1. Check target resource/subject types on relations
             for (const relSymbol of resourceSymbol.relations.values()) {
-                if (relSymbol.targetType && relSymbol.targetType !== "user") {
-                    if (!symbolTable.hasResource(relSymbol.targetType)) {
+                if (relSymbol.targetType) {
+                    const isSubject = symbolTable.hasSubject(relSymbol.targetType);
+                    const isResource = symbolTable.hasResource(relSymbol.targetType);
+                    if (!isSubject && !isResource) {
                         throw new Error(
-                            `Type Error: Relation '${relSymbol.name}' in resource '${resourceSymbol.name}' targets unknown resource type '${relSymbol.targetType}' at line ${relSymbol.line}, column ${relSymbol.column}`
+                            `Type Error: Relation '${relSymbol.name}' in resource '${resourceSymbol.name}' targets unknown type '${relSymbol.targetType}' at line ${relSymbol.line}, column ${relSymbol.column}`
                         );
                     }
                 }
@@ -100,7 +107,7 @@ export class SemanticAnalyzer {
             }
 
             // Recursive relation check: relation -> targetPermission
-            if (relNode.permission && relSymbol.targetType && relSymbol.targetType !== "user") {
+            if (relNode.permission && relSymbol.targetType && !symbolTable.hasSubject(relSymbol.targetType)) {
                 const targetResource = symbolTable.getResource(relSymbol.targetType);
                 if (targetResource && !targetResource.permissions.has(relNode.permission)) {
                     throw new Error(

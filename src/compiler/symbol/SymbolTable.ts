@@ -1,10 +1,14 @@
-export type SymbolKind = "resource" | "relation" | "permission";
+export type SymbolKind = "subject" | "resource" | "relation" | "permission";
 
 export interface BaseSymbol {
     kind: SymbolKind;
     name: string;
     line: number;
     column: number;
+}
+
+export interface SubjectSymbol extends BaseSymbol {
+    kind: "subject";
 }
 
 export interface RelationSymbol extends BaseSymbol {
@@ -23,7 +27,16 @@ export interface ResourceSymbol extends BaseSymbol {
 }
 
 export class SymbolTable {
+    private subjects = new Set<string>();
     private resources = new Map<string, ResourceSymbol>();
+
+    public defineSubject(name: string): void {
+        this.subjects.add(name);
+    }
+
+    public hasSubject(name: string): boolean {
+        return this.subjects.has(name);
+    }
 
     public defineResource(name: string, line: number, column: number): ResourceSymbol {
         const symbol: ResourceSymbol = {
@@ -51,6 +64,7 @@ export class SymbolTable {
     }
 
     public clear(): void {
+        this.subjects.clear();
         this.resources.clear();
     }
 }

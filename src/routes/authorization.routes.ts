@@ -9,6 +9,7 @@ router.get("/graph", authorizationController.getGraphView);
 // API Endpoints
 router.get("/v2.1/graph", authorizationController.getGraphData);
 router.post("/v2.1/users", authorizationController.setUser);
+router.post("/v2.1/groups", authorizationController.setGroup);
 router.post("/v2.1/resources", authorizationController.setResource);
 router.post("/v2.1/objects", authorizationController.setObject);
 router.post("/v2.1/relationships", authorizationController.setRelationship);

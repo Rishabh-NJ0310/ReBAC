@@ -8,6 +8,7 @@ export class Lexer {
 
     private readonly keywords: Record<string, TokenType> = {
         resource: TokenType.RESOURCE,
+        subject: TokenType.SUBJECT,
         relation: TokenType.RELATION,
         permission: TokenType.PERMISSION,
         AND: TokenType.AND,
