@@ -122,12 +122,19 @@ export const allThreeTables = async (req: Request, res: Response) => {
         const users = await authorizationService.getUsers();
         const resources = await authorizationService.getResources();
         const relationships = await authorizationService.getRelationships();
+        display(users);
+        display(resources);
+        display(relationships);
         res.json({ users, resources, relationships });
     } catch (err) {
         console.error(err);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };
+
+function display(data: any) {
+    console.table(data)
+}
 
 export const deleteRelationship = async (req: Request, res: Response) => {
     try {

@@ -3,6 +3,7 @@
 resource patient {
     relation doctor_of
     relation contains
+    relation admin
 
     permission view =
         doctor_of
@@ -29,4 +30,24 @@ resource department {
 
     permission view =
         head_of
+}
+
+resource bill {
+    relation has_bill
+    relation pharmacist_of
+    relation contains
+
+
+    permission view = 
+        has_bill
+        OR pharmacist_of -> has_bill
+        OR contains -> view
+}
+
+resource pharmacy {
+    relation pharmacist_of
+    relation contains
+
+    permission view = 
+        contains -> view
 }
