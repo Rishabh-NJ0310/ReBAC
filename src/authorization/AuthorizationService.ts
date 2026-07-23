@@ -1,6 +1,7 @@
 import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, CreateRelationshipData } from "./GraphRepository.js";
 import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
 import { SubjectResolver } from "./SubjectResolver.js";
+import { ExecutionProfiler, ExecutionProfile } from "./ExecutionProfiler.js";
 import { schema } from "./Schema.js";
 
 export class AuthorizationService {
@@ -35,11 +36,14 @@ export class AuthorizationService {
         userId: number;
         resourceId: number;
         permission: string;
-    }): Promise<{ allowed: boolean; trace: TraceStep[] }> {
+    }): Promise<{ allowed: boolean; trace: TraceStep[]; profile?: ExecutionProfile }> {
         const resource = await this.repository.getResourceById(params.resourceId);
         if (!resource) {
             return { allowed: false, trace: [] };
         }
+
+        const profiler = new ExecutionProfiler();
+        profiler.start();
 
         const subjectResolver = new SubjectResolver(this.repository);
         const subjectSet = await subjectResolver.resolveSubjectSet(params.userId);
@@ -50,12 +54,17 @@ export class AuthorizationService {
             permission: params.permission,
             processing: new Set<string>(),
             memo: new Map<string, boolean>(),
-            trace: []
+            trace: [],
+            profiler
         };
 
         const allowed = await this.ruleEngine.checkPermission(context, resource);
 
-        return { allowed, trace: context.trace };
+        return {
+            allowed,
+            trace: context.trace,
+            profile: profiler.getProfile()
+        };
     }
 
     async getGraphData() {

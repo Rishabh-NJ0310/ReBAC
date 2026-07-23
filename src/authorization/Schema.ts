@@ -1,6 +1,6 @@
 import fs from "fs";
 import path from "path";
-import { compileAuthDSL } from "../compiler/CompilerFacade.js";
+import { compileAuthDSL, compileAuthDSLFile } from "../compiler/CompilerFacade.js";
 
 export interface Rule {
     relation: string;
@@ -55,8 +55,7 @@ export function loadSchemaFromDSL(filePath?: string): RebacSchema {
     try {
         const targetPath = filePath || path.join(process.cwd(), "src", "schema", "hospital.auth");
         if (fs.existsSync(targetPath)) {
-            const content = fs.readFileSync(targetPath, "utf-8");
-            return compileAuthDSL(content);
+            return compileAuthDSLFile(targetPath);
         }
     } catch (err) {
         console.warn("Failed to load schema from DSL file, using fallback:", err);

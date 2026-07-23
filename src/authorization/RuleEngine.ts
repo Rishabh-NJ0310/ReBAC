@@ -1,5 +1,6 @@
 import { GraphRepository } from "./GraphRepository.js";
 import { RebacSchema, schema as defaultSchema, RuleGroup, Rule } from "./Schema.js";
+import { ExecutionProfiler } from "./ExecutionProfiler.js";
 import prisma from "../prisma/client.js";
 
 export interface TraceStep {
@@ -17,6 +18,7 @@ export interface EvaluationContext {
     processing: Set<string>;
     memo: Map<string, boolean>;
     trace: TraceStep[];
+    profiler?: ExecutionProfiler;
 }
 
 export class RuleEngine {
@@ -29,14 +31,19 @@ export class RuleEngine {
         context: EvaluationContext,
         resource: { id: number; type: string }
     ): Promise<boolean> {
+        context.profiler?.enterDepth();
+
         const cacheKey = `${context.userId}:${resource.id}:${context.permission}`;
 
         if (context.processing.has(cacheKey)) {
             // Cycle detected - abort path
+            context.profiler?.exitDepth();
             return false;
         }
 
         if (context.memo.has(cacheKey)) {
+            context.profiler?.incrementMemoHit();
+            context.profiler?.exitDepth();
             return context.memo.get(cacheKey)!;
         }
 
@@ -61,6 +68,7 @@ export class RuleEngine {
         context.processing.delete(cacheKey);
         context.memo.set(cacheKey, result);
 
+        context.profiler?.exitDepth();
         return result;
     }
 
@@ -136,6 +144,9 @@ export class RuleEngine {
         resource: { id: number; type: string },
         rule: Rule
     ): Promise<boolean> {
+        const startTime = performance.now();
+        context.profiler?.incrementDbLookup();
+
         let outcome = false;
 
         if (context.subjectSet && context.subjectSet.size > 0) {
@@ -159,6 +170,9 @@ export class RuleEngine {
             });
         }
 
+        const duration = performance.now() - startTime;
+        context.profiler?.recordRule(`Direct: ${rule.relation}`, duration, outcome);
+
         context.trace.push({
             resourceId: resource.id,
             resourceType: resource.type,
@@ -175,6 +189,9 @@ export class RuleEngine {
         resource: { id: number; type: string },
         rule: Rule
     ): Promise<boolean> {
+        const startTime = performance.now();
+        context.profiler?.incrementDbLookup();
+
         const parents = await this.repository.findParents({
             objectId: resource.id,
             relation: rule.relation
@@ -193,6 +210,9 @@ export class RuleEngine {
                 break;
             }
         }
+
+        const duration = performance.now() - startTime;
+        context.profiler?.recordRule(`Recursive: ${rule.relation} -> ${rule.permission}`, duration, outcome);
 
         context.trace.push({
             resourceId: resource.id,
