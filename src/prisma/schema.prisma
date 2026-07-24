@@ -10,85 +10,154 @@ datasource db {
   provider = "postgresql"
 }
 
+// ─── Subject Type Enum ────────────────────────────────────────────────────────
+
+enum SubjectType {
+  USER
+  GROUP
+  ROLE
+  TEAM
+  SERVICE_ACCOUNT
+}
+
+// ─── Identity Nodes ───────────────────────────────────────────────────────────
+
+// Every entity that can HOLD a permission is a Subject.
+// User and Group are concrete identity types backed by their own tables.
 model Subject {
-  id        Int      @id @default(autoincrement())
-  type      String   // "user", "group", "team", "resource"
-  name      String
+  id   Int         @id @default(autoincrement())
+  type SubjectType
+  name String
 
-  user      User?
-  group     Group?
+  // Concrete identity — at most one of these is set
+  user  User?
+  group Group?
 
-  relationships          Relationship[] @relation("SubjectRelation")
-  targetRelationships    Relationship[] @relation("TargetSubjectRelation")
+  // Identity Graph edges (Subject → Subject)
+  outgoingSubjectEdges SubjectEdge[] @relation("SubjectEdgeSource")
+  incomingSubjectEdges SubjectEdge[] @relation("SubjectEdgeTarget")
+
+  // Permission Graph edges (Subject → Resource)
+  permissionEdges PermissionEdge[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("SubjectV3")
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  name      String
-  email     String   @unique
-  password  String
+  id       Int    @id @default(autoincrement())
+  name     String
+  email    String @unique
+  password String
 
-  subjectId Int      @unique
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
-
-  relationships Relationship[]
+  // Every User is backed by exactly one Subject
+  subjectId Int     @unique
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("UserV3")
 }
 
 model Group {
-  id        Int      @id @default(autoincrement())
-  name      String
+  id   Int    @id @default(autoincrement())
+  name String
 
-  subjectId Int      @unique
-  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+  // Every Group is backed by exactly one Subject
+  subjectId Int     @unique
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("GroupV3")
 }
+
+// ─── Resource Node ────────────────────────────────────────────────────────────
 
 model Resource {
-  id        Int      @id @default(autoincrement())
-  type      String
-  name      String
+  id   Int    @id @default(autoincrement())
+  type String
+  name String
 
-  relationshipsAsSubject Relationship[] @relation("SubjectResource")
-  relationshipsAsTarget  Relationship[] @relation("TargetResource")
+  // Resource Graph edges (Resource → Resource)
+  outgoingResourceEdges ResourceEdge[] @relation("ResourceEdgeSource")
+  incomingResourceEdges ResourceEdge[] @relation("ResourceEdgeTarget")
+
+  // Permission Graph edges (Subject → Resource)
+  permissionEdges PermissionEdge[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("ResourceV3")
 }
 
-model Relationship {
-  id        Int      @id @default(autoincrement())
-  relation  String
+// ─── Graph 1: Identity Graph  (Subject ──[member/owner/manager]──> Subject) ──
 
-  // Generic Subject side (User, Group, etc.)
-  subjectId Int?
-  subject   Subject?  @relation("SubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
+// Raj ──member──> Doctors
+// Doctors ──member──> MedicalStaff
+model SubjectEdge {
+  id       Int    @id @default(autoincrement())
+  relation String // "member", "owner", "manager"
 
-  // Legacy userSubjectId / resourceSubjectId for backwards compatibility
-  userSubjectId Int?
-  userSubject   User? @relation(fields: [userSubjectId], references: [id])
+  sourceId Int
+  source   Subject @relation("SubjectEdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
 
-  resourceSubjectId Int?
-  resourceSubject   Resource? @relation("SubjectResource", fields: [resourceSubjectId], references: [id])
-
-  // Subject side target (for group membership edges like 'Raj member Doctors')
-  targetSubjectId Int?
-  targetSubject   Subject? @relation("TargetSubjectRelation", fields: [targetSubjectId], references: [id], onDelete: Cascade)
-
-  // Resource side target (for permissions like 'Doctors doctor_of Patient101')
-  objectId Int?
-  object   Resource? @relation("TargetResource", fields: [objectId], references: [id])
+  targetId Int
+  target   Subject @relation("SubjectEdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
 
-  @@index([objectId, relation])
+  @@unique([sourceId, targetId, relation])
+  @@index([sourceId, relation])
+  @@index([targetId, relation])
+  @@map("SubjectEdgeV3")
+}
+
+// ─── Graph 2: Resource Graph  (Resource ──[contains]──> Resource) ────────────
+
+// Department ──contains──> Ward
+// Ward ──contains──> Patient
+model ResourceEdge {
+  id       Int    @id @default(autoincrement())
+  relation String // "contains", "parent", "part_of"
+
+  sourceId Int
+  source   Resource @relation("ResourceEdgeSource", fields: [sourceId], references: [id], onDelete: Cascade)
+
+  targetId Int
+  target   Resource @relation("ResourceEdgeTarget", fields: [targetId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([sourceId, targetId, relation])
+  @@index([sourceId, relation])
+  @@index([targetId, relation])
+  @@map("ResourceEdgeV3")
+}
+
+// ─── Graph 3: Permission Graph  (Subject ──[doctor_of/viewer]──> Resource) ───
+
+// Doctors ──doctor_of──> Patient101
+// Raj ──assigned_nurse──> Ward-ICU
+model PermissionEdge {
+  id       Int    @id @default(autoincrement())
+  relation String // "doctor_of", "assigned_nurse", "viewer", "editor"
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  resourceId Int
+  resource   Resource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([subjectId, resourceId, relation])
   @@index([subjectId, relation])
-  @@index([targetSubjectId, relation])
+  @@index([resourceId, relation])
+  @@map("PermissionEdgeV3")
 }
