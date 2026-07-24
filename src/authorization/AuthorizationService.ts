@@ -1,4 +1,13 @@
-import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, CreateRelationshipData } from "./GraphRepository.js";
+import {
+    GraphRepository,
+    graphRepository,
+    CreateUserData,
+    CreateResourceData,
+    CreateSubjectEdgeData,
+    CreateResourceEdgeData,
+    CreatePermissionEdgeData,
+    GenericRelationshipData
+} from "./GraphRepository.js";
 import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
 import { schema } from "./Schema.js";
 
@@ -26,7 +35,19 @@ export class AuthorizationService {
         return this.createResource(data);
     }
 
-    async createRelationship(data: CreateRelationshipData) {
+    async createSubjectEdge(data: CreateSubjectEdgeData) {
+        return this.repository.createSubjectEdge(data);
+    }
+
+    async createResourceEdge(data: CreateResourceEdgeData) {
+        return this.repository.createResourceEdge(data);
+    }
+
+    async createPermissionEdge(data: CreatePermissionEdgeData) {
+        return this.repository.createPermissionEdge(data);
+    }
+
+    async createRelationship(data: GenericRelationshipData) {
         return this.repository.createRelationship(data);
     }
 
@@ -69,7 +90,7 @@ export class AuthorizationService {
         return this.repository.getResources();
     }
 
-    async getRelationships(): Promise<any[]> {
+    async getRelationships(): Promise<any> {
         return this.repository.getRelationships();
     }
 

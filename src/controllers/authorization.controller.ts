@@ -36,28 +36,43 @@ export const setObject = setResource;
 
 export const setRelationship = async (req: Request, res: Response) => {
     try {
-        const { relation, userSubjectId, subjectId, resourceSubjectId, objectId, resourceId } = req.body;
-        const targetResourceId = objectId ?? resourceId;
-        const actualUserSubjectId = userSubjectId ?? (resourceSubjectId ? undefined : subjectId);
+        const {
+            relation,
+            subjectSourceId,
+            subjectTargetId,
+            resourceSourceId,
+            resourceTargetId,
+            userSubjectId,
+            resourceSubjectId,
+            targetSubjectId,
+            objectId,
+            resourceId,
+            subjectId
+        } = req.body;
 
-        if (!relation || (!actualUserSubjectId && !resourceSubjectId) || !targetResourceId) {
-            res.status(400).json({
-                message: "Missing required fields. Provide relation, objectId/resourceId, and either userSubjectId/subjectId or resourceSubjectId."
-            });
+        if (!relation) {
+            res.status(400).json({ message: "Missing required field: relation" });
             return;
         }
 
         const relationship = await authorizationService.createRelationship({
             relation,
-            userSubjectId: actualUserSubjectId ? Number(actualUserSubjectId) : undefined,
-            resourceSubjectId: resourceSubjectId ? Number(resourceSubjectId) : undefined,
-            objectId: Number(targetResourceId)
+            subjectSourceId,
+            subjectTargetId,
+            resourceSourceId,
+            resourceTargetId,
+            userSubjectId,
+            resourceSubjectId,
+            targetSubjectId,
+            objectId,
+            resourceId,
+            subjectId
         });
 
         res.status(201).json(relationship);
     } catch (err) {
         console.error(err);
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ message: (err as Error).message || "Internal Server Error" });
     }
 };
 

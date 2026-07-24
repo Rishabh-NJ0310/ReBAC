@@ -126,8 +126,8 @@ export class RuleEngine {
         rule: Rule
     ): Promise<boolean> {
         const outcome = await this.repository.findDirectRelationship({
-            userSubjectId: context.userId,
-            objectId: resource.id,
+            userId: context.userId,
+            resourceId: resource.id,
             relation: rule.relation
         });
 
@@ -148,7 +148,7 @@ export class RuleEngine {
         rule: Rule
     ): Promise<boolean> {
         const parents = await this.repository.findParents({
-            objectId: resource.id,
+            resourceId: resource.id,
             relation: rule.relation
         });
 
