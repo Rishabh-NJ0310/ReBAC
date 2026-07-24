@@ -47,6 +47,8 @@ function runV23CompilerTests() {
     // Test 3: AST Optimizer & Constant Folder
     console.log("\n3. Testing AST Optimizer (Idempotence, Double Negation & Constant Folding)...");
     const unoptimizedDSL = `
+    subject user
+
     resource test_res {
         relation doctor_of : user
         relation admin : user
@@ -74,6 +76,8 @@ function runV23CompilerTests() {
     // Test 4: ADSL Linter
     console.log("\n4. Testing ADSL Linter (Diagnostic Warnings)...");
     const lintTargetDSL = `
+    subject user
+
     resource patient {
         relation doctor_of : user
         relation unused_relation : user
@@ -93,6 +97,8 @@ function runV23CompilerTests() {
     // Test 5: Explain Plan Generator
     console.log("\n5. Testing EXPLAIN PLAN Generator...");
     const explainDSL = `
+    subject user
+
     resource ward {
         relation assigned_nurse : user
         permission view = assigned_nurse

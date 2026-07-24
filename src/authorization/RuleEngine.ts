@@ -144,34 +144,11 @@ export class RuleEngine {
         resource: { id: number; type: string },
         rule: Rule
     ): Promise<boolean> {
-        const startTime = performance.now();
-        context.profiler?.incrementDbLookup();
-
-        let outcome = false;
-
-        if (context.subjectSet && context.subjectSet.size > 0) {
-            const subjectIds = Array.from(context.subjectSet);
-            const rel = await prisma.relationship.findFirst({
-                where: {
-                    relation: rule.relation,
-                    objectId: resource.id,
-                    OR: [
-                        { subjectId: { in: subjectIds } },
-                        { userSubjectId: context.userId }
-                    ]
-                }
-            });
-            outcome = rel !== null;
-        } else {
-            outcome = await this.repository.findDirectRelationship({
-                userSubjectId: context.userId,
-                objectId: resource.id,
-                relation: rule.relation
-            });
-        }
-
-        const duration = performance.now() - startTime;
-        context.profiler?.recordRule(`Direct: ${rule.relation}`, duration, outcome);
+        const outcome = await this.repository.findDirectRelationship({
+            userId: context.userId,
+            resourceId: resource.id,
+            relation: rule.relation
+        });
 
         context.trace.push({
             resourceId: resource.id,
@@ -193,7 +170,7 @@ export class RuleEngine {
         context.profiler?.incrementDbLookup();
 
         const parents = await this.repository.findParents({
-            objectId: resource.id,
+            resourceId: resource.id,
             relation: rule.relation
         });
 
