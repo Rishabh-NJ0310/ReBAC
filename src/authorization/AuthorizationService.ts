@@ -1,4 +1,13 @@
-import { GraphRepository, graphRepository, CreateUserData, CreateResourceData, CreateRelationshipData } from "./GraphRepository.js";
+import {
+    GraphRepository,
+    graphRepository,
+    CreateUserData,
+    CreateResourceData,
+    CreateSubjectEdgeData,
+    CreateResourceEdgeData,
+    CreatePermissionEdgeData,
+    GenericRelationshipData
+} from "./GraphRepository.js";
 import { RuleEngine, EvaluationContext, TraceStep } from "./RuleEngine.js";
 import { SubjectResolver } from "./SubjectResolver.js";
 import { ExecutionProfiler, ExecutionProfile } from "./ExecutionProfiler.js";
@@ -50,7 +59,19 @@ export class AuthorizationService {
         return this.createResource(data);
     }
 
-    async createRelationship(data: CreateRelationshipData) {
+    async createSubjectEdge(data: CreateSubjectEdgeData) {
+        return this.repository.createSubjectEdge(data);
+    }
+
+    async createResourceEdge(data: CreateResourceEdgeData) {
+        return this.repository.createResourceEdge(data);
+    }
+
+    async createPermissionEdge(data: CreatePermissionEdgeData) {
+        return this.repository.createPermissionEdge(data);
+    }
+
+    async createRelationship(data: GenericRelationshipData) {
         return this.repository.createRelationship(data);
     }
 
@@ -101,13 +122,33 @@ export class AuthorizationService {
         };
     }
 
-    async getGraphData() { return this.repository.getGraphData(); }
-    async getUsers(): Promise<any[]> { return this.repository.getUsers(); }
-    async getGroups(): Promise<any[]> { return this.repository.getGroups(); }
-    async getResources(): Promise<any[]> { return this.repository.getResources(); }
-    async getRelationships(): Promise<any[]> { return this.repository.getRelationships(); }
-    async deleteRelationship(id: number): Promise<void> { return this.repository.deleteRelationship(id); }
-    async deleteAll(): Promise<void> { return this.repository.deleteAll(); }
+    async getGraphData() {
+        return this.repository.getGraphData();
+    }
+
+    async getUsers(): Promise<any[]> {
+        return this.repository.getUsers();
+    }
+
+    async getGroups(): Promise<any[]> {
+        return this.repository.getGroups();
+    }
+
+    async getResources(): Promise<any[]> {
+        return this.repository.getResources();
+    }
+
+    async getRelationships(): Promise<any> {
+        return this.repository.getRelationships();
+    }
+
+    async deleteRelationship(id: number): Promise<void> {
+        return this.repository.deleteRelationship(id);
+    }
+
+    async deleteAll(): Promise<void> {
+        return this.repository.deleteAll();
+    }
 }
 
 export const authorizationService = new AuthorizationService();
