@@ -10,6 +10,9 @@ datasource db {
   provider = "postgresql"
 }
 
+// @@map renames the actual PostgreSQL table to "UserV2",
+// while the Prisma model name stays "User" — no code changes required.
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
@@ -20,6 +23,8 @@ model User {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("UserV2")
 }
 
 model Resource {
@@ -32,6 +37,8 @@ model Resource {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("ResourceV2")
 }
 
 model Relationship {
@@ -51,4 +58,6 @@ model Relationship {
   createdAt DateTime @default(now())
 
   @@index([objectId, relation])
+
+  @@map("RelationshipV2")
 }
