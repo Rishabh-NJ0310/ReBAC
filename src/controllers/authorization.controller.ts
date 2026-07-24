@@ -514,7 +514,7 @@ export const getGraphView = (req: Request, res: Response) => {
                 targetLabel.textContent = 'Target Resource';
                 allNodes.filter(n => n.type === 'user' || n.type === 'group').forEach(n => {
                     const opt = document.createElement('option');
-                    opt.value = n.type === 'user' ? 'user:' + n.details.name : 'subject:' + n.subjectId;
+                    opt.value = n.subjectId;
                     opt.textContent = n.label;
                     edgeSourceSelect.appendChild(opt);
                 });
@@ -525,8 +525,8 @@ export const getGraphView = (req: Request, res: Response) => {
                     edgeTargetSelect.appendChild(opt);
                 });
             } else if (mode === 'identity') {
-                sourceLabel.textContent = 'Source Subject (User/Group)';
-                targetLabel.textContent = 'Target Subject Group';
+                sourceLabel.textContent = 'Source Subject (User or Group)';
+                targetLabel.textContent = 'Target Group';
                 allNodes.filter(n => n.type === 'user' || n.type === 'group').forEach(n => {
                     const opt = document.createElement('option');
                     opt.value = n.subjectId;
@@ -592,26 +592,21 @@ export const getGraphView = (req: Request, res: Response) => {
         async function addEdge(e) {
             e.preventDefault();
             const mode = document.getElementById('edgeMode').value;
-            const sourceVal = document.getElementById('edgeSourceSelect').value;
-            const targetVal = document.getElementById('edgeTargetSelect').value;
+            const sourceVal = Number(document.getElementById('edgeSourceSelect').value);
+            const targetVal = Number(document.getElementById('edgeTargetSelect').value);
             const relation = document.getElementById('edgeRelationInput').value;
 
             const body = { relation };
 
             if (mode === 'identity') {
-                body.subjectSourceId = Number(sourceVal);
-                body.subjectTargetId = Number(targetVal);
+                body.subjectSourceId = sourceVal;
+                body.subjectTargetId = targetVal;
             } else if (mode === 'resource') {
-                body.resourceSourceId = Number(sourceVal);
-                body.resourceTargetId = Number(targetVal);
+                body.resourceSourceId = sourceVal;
+                body.resourceTargetId = targetVal;
             } else if (mode === 'permission') {
-                if (sourceVal.startsWith('user:')) {
-                    const u = allNodes.find(n => n.type === 'user' && n.details.name === sourceVal.split(':')[1]);
-                    body.userSubjectId = u ? u.id : undefined;
-                } else {
-                    body.subjectId = Number(sourceVal);
-                }
-                body.objectId = Number(targetVal);
+                body.subjectId = sourceVal;
+                body.resourceId = targetVal;
             }
 
             const res = await fetch('/api/v3/relationships', {
@@ -621,7 +616,10 @@ export const getGraphView = (req: Request, res: Response) => {
             });
 
             if (res.ok) { document.getElementById('edgeRelationInput').value = ''; loadGraph(); }
-            else { alert("Failed to create graph edge."); }
+            else {
+                const errData = await res.json();
+                alert("Failed to create edge: " + (errData.message || "Unknown error"));
+            }
         }
 
         async function resetDb() {

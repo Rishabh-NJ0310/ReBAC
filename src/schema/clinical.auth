@@ -21,9 +21,10 @@ resource patient extends MedicalRecord {
 
 resource ward {
     relation assigned_nurse : user
+    relation assigned_to : user
     relation contains : department
 
-    permission view = assigned_nurse OR contains.view
+    permission view = assigned_nurse OR assigned_to OR contains.view
 }
 
 resource department {

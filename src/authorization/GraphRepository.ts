@@ -83,23 +83,39 @@ export class GraphRepository {
     }
 
     async createSubjectEdge(data: CreateSubjectEdgeData) {
-        return prisma.subjectEdge.create({
-            data: {
+        return prisma.subjectEdge.upsert({
+            where: {
+                sourceId_targetId_relation: {
+                    sourceId: data.sourceId,
+                    targetId: data.targetId,
+                    relation: data.relation
+                }
+            },
+            create: {
                 relation: data.relation,
                 sourceId: data.sourceId,
                 targetId: data.targetId
             },
+            update: {},
             include: { source: true, target: true }
         });
     }
 
     async createResourceEdge(data: CreateResourceEdgeData) {
-        return prisma.resourceEdge.create({
-            data: {
+        return prisma.resourceEdge.upsert({
+            where: {
+                sourceId_targetId_relation: {
+                    sourceId: data.sourceId,
+                    targetId: data.targetId,
+                    relation: data.relation
+                }
+            },
+            create: {
                 relation: data.relation,
                 sourceId: data.sourceId,
                 targetId: data.targetId
             },
+            update: {},
             include: { source: true, target: true }
         });
     }
@@ -112,76 +128,63 @@ export class GraphRepository {
             subjectId = user.subjectId;
         }
 
-        return prisma.permissionEdge.create({
-            data: {
+        return prisma.permissionEdge.upsert({
+            where: {
+                subjectId_resourceId_relation: {
+                    subjectId,
+                    resourceId: data.resourceId,
+                    relation: data.relation
+                }
+            },
+            create: {
                 relation: data.relation,
                 subjectId,
                 resourceId: data.resourceId
             },
+            update: {},
             include: { subject: true, resource: true }
         });
     }
 
     // Smart dispatcher for backward compatibility with generic endpoints
     async createRelationship(data: GenericRelationshipData) {
+        const relation = data.relation;
+
+        // Normalize null / falsy values to undefined
+        const subjectSourceId = data.subjectSourceId || undefined;
+        const subjectTargetId = (data.subjectTargetId || data.targetSubjectId) || undefined;
+        const resourceSourceId = (data.resourceSourceId || data.resourceSubjectId) || undefined;
+        const resourceTargetId = (data.resourceTargetId || data.objectId || data.resourceId) || undefined;
+        const subjectId = (data.subjectId || data.userSubjectId) || undefined;
+
         // 1. Identity Graph Edge (Subject -> Subject)
-        const subSrcId = data.subjectSourceId ?? data.subjectId;
-        const subTgtId = data.subjectTargetId ?? data.targetSubjectId;
-
-        if (subSrcId && subTgtId) {
+        if (subjectSourceId && subjectTargetId) {
             return this.createSubjectEdge({
-                relation: data.relation,
-                sourceId: subSrcId,
-                targetId: subTgtId
-            });
-        }
-
-        if (data.userSubjectId && subTgtId) {
-            const user = await prisma.user.findUnique({ where: { id: data.userSubjectId } });
-            const sourceId = user?.subjectId ?? data.userSubjectId;
-            return this.createSubjectEdge({
-                relation: data.relation,
-                sourceId,
-                targetId: subTgtId
+                relation,
+                sourceId: subjectSourceId,
+                targetId: subjectTargetId
             });
         }
 
         // 2. Resource Graph Edge (Resource -> Resource)
-        const resSrcId = data.resourceSourceId ?? data.resourceSubjectId;
-        const resTgtId = data.resourceTargetId ?? data.objectId ?? data.resourceId;
-
-        if (data.resourceSourceId || data.resourceTargetId) {
-            if (resSrcId && resTgtId) {
-                return this.createResourceEdge({
-                    relation: data.relation,
-                    sourceId: resSrcId,
-                    targetId: resTgtId
-                });
-            }
-        }
-
-        if (data.resourceSubjectId && (data.objectId || data.resourceId)) {
-            const targetId = data.objectId ?? data.resourceId!;
+        if (resourceSourceId && resourceTargetId) {
             return this.createResourceEdge({
-                relation: data.relation,
-                sourceId: data.resourceSubjectId,
-                targetId
+                relation,
+                sourceId: resourceSourceId,
+                targetId: resourceTargetId
             });
         }
 
         // 3. Permission Edge (Subject -> Resource)
-        const permSubId = data.subjectId ?? data.userSubjectId;
-        const permResId = data.resourceId ?? data.objectId;
-
-        if (permSubId && permResId) {
+        if (subjectId && resourceTargetId) {
             return this.createPermissionEdge({
-                relation: data.relation,
-                subjectId: permSubId,
-                resourceId: permResId
+                relation,
+                subjectId,
+                resourceId: resourceTargetId
             });
         }
 
-        throw new Error("Could not determine edge type from parameters provided.");
+        throw new Error(`Invalid edge parameters provided: ${JSON.stringify(data)}. Provide (subjectId & resourceId), (subjectSourceId & subjectTargetId), or (resourceSourceId & resourceTargetId).`);
     }
 
     async getResourceById(id: number): Promise<Resource | null> {
