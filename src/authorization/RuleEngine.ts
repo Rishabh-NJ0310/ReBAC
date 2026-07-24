@@ -144,11 +144,17 @@ export class RuleEngine {
         resource: { id: number; type: string },
         rule: Rule
     ): Promise<boolean> {
+        const startTime = performance.now();
+        context.profiler?.incrementDbLookup();
+
         const outcome = await this.repository.findDirectRelationship({
             userId: context.userId,
             resourceId: resource.id,
             relation: rule.relation
         });
+
+        const duration = performance.now() - startTime;
+        context.profiler?.recordRule(`Direct: ${rule.relation}`, duration, outcome);
 
         context.trace.push({
             resourceId: resource.id,
