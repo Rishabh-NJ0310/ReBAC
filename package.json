@@ -23,7 +23,9 @@
     "helmet": "^8.3.0",
     "ioredis": "^5.11.1",
     "pg": "^8.22.0",
-    "redis": "^6.1.0"
+    "redis": "^6.1.0",
+    "vscode-languageserver": "^10.1.0",
+    "vscode-languageserver-textdocument": "^1.0.12"
   },
   "devDependencies": {
     "@types/node": "^26.1.1",

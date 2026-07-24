@@ -1,0 +1,15 @@
+info:
+  name: Empty all
+  type: http
+  seq: 11
+
+http:
+  method: POST
+  url: http://localhost:7077/api/v2.1/deleteAll
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

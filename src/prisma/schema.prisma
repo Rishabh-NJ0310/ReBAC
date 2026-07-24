@@ -1,8 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -12,23 +10,29 @@ datasource db {
   provider = "postgresql"
 }
 
+model Subject {
+  id        Int      @id @default(autoincrement())
+  type      String   // "user", "group", "team", "resource"
+  name      String
+
+  user      User?
+  group     Group?
+
+  relationships          Relationship[] @relation("SubjectRelation")
+  targetRelationships    Relationship[] @relation("TargetSubjectRelation")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   name      String
   email     String   @unique
   password  String
 
-  relationships Relationship[] @relation("UserRelationships")
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-model Resource {
-  id        Int      @id @default(autoincrement())
-
-  type      String
-  name      String
+  subjectId Int      @unique
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   relationships Relationship[]
 
@@ -36,19 +40,55 @@ model Resource {
   updatedAt DateTime @updatedAt
 }
 
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String
+
+  subjectId Int      @unique
+  subject   Subject  @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Resource {
+  id        Int      @id @default(autoincrement())
+  type      String
+  name      String
+
+  relationshipsAsSubject Relationship[] @relation("SubjectResource")
+  relationshipsAsTarget  Relationship[] @relation("TargetResource")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Relationship {
+  id        Int      @id @default(autoincrement())
+  relation  String
 
-  id Int @id @default(autoincrement())
+  // Generic Subject side (User, Group, etc.)
+  subjectId Int?
+  subject   Subject?  @relation("SubjectRelation", fields: [subjectId], references: [id], onDelete: Cascade)
 
-  relation String
+  // Legacy userSubjectId / resourceSubjectId for backwards compatibility
+  userSubjectId Int?
+  userSubject   User? @relation(fields: [userSubjectId], references: [id])
 
-  resourceId Int
-  resource   Resource @relation(fields: [resourceId], references: [id])
+  resourceSubjectId Int?
+  resourceSubject   Resource? @relation("SubjectResource", fields: [resourceSubjectId], references: [id])
 
-  subjectId Int
-  subject   User @relation("UserRelationships", fields: [subjectId], references: [id])
+  // Subject side target (for group membership edges like 'Raj member Doctors')
+  targetSubjectId Int?
+  targetSubject   Subject? @relation("TargetSubjectRelation", fields: [targetSubjectId], references: [id], onDelete: Cascade)
+
+  // Resource side target (for permissions like 'Doctors doctor_of Patient101')
+  objectId Int?
+  object   Resource? @relation("TargetResource", fields: [objectId], references: [id])
 
   createdAt DateTime @default(now())
 
-  @@unique([subjectId, resourceId, relation])
+  @@index([objectId, relation])
+  @@index([subjectId, relation])
+  @@index([targetSubjectId, relation])
 }

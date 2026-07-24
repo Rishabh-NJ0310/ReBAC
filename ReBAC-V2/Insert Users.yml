@@ -1,0 +1,23 @@
+info:
+  name: Insert Users
+  type: http
+  seq: 7
+
+http:
+  method: POST
+  url: http://localhost:7077/api/v2.1/users
+  body:
+    type: json
+    data: |-
+      {
+        "name":"Amit",
+        "email":"amit-email@gmail.com",
+        "password":"amit10"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

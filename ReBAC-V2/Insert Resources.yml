@@ -1,0 +1,22 @@
+info:
+  name: Insert Resources
+  type: http
+  seq: 8
+
+http:
+  method: POST
+  url: http://localhost:7077/api/v2.1/resources
+  body:
+    type: json
+    data: |-
+      {
+        "type":"prescription",
+        "name":"Prescription101"
+      }
+  auth: inherit
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5

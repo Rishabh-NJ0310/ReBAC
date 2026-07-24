@@ -1,0 +1,33 @@
+# Clinical Domain Schema
+
+subject user
+subject group
+
+resource MedicalRecord {
+    relation doctor_of : user
+    relation admin : user
+
+    permission view = doctor_of
+    permission edit = doctor_of
+    permission delete = admin
+}
+
+resource patient extends MedicalRecord {
+    relation contains : ward
+
+    permission medical_staff = doctor_of
+    permission view = medical_staff OR contains.view
+}
+
+resource ward {
+    relation assigned_nurse : user
+    relation contains : department
+
+    permission view = assigned_nurse OR contains.view
+}
+
+resource department {
+    relation head_of : user
+
+    permission view = head_of
+}

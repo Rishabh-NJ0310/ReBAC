@@ -1,0 +1,26 @@
+{
+  "name": "authorization-dsl",
+  "displayName": "Authorization DSL (ADSL)",
+  "description": "Syntax highlighting and language support for Authorization DSL (.auth files)",
+  "version": "1.0.0",
+  "publisher": "rebac",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "contributes": {
+    "languages": [{
+      "id": "auth",
+      "aliases": ["Authorization DSL", "ADSL", "auth"],
+      "extensions": [".auth"],
+      "configuration": "./language-configuration.json"
+    }],
+    "grammars": [{
+      "language": "auth",
+      "scopeName": "source.auth",
+      "path": "./syntaxes/auth.tmLanguage.json"
+    }]
+  }
+}

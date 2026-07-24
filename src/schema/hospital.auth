@@ -1,0 +1,4 @@
+# Hospital Root Schema (ADSL v3.2 Language Specification)
+
+import "clinical.auth"
+import "inventory.auth"
