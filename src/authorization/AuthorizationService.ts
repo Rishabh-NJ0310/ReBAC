@@ -14,7 +14,7 @@ import { ExecutionProfiler, ExecutionProfile } from "./ExecutionProfiler.js";
 import { ExplainTreeBuilder, ExplainNode } from "./ExplainTree.js";
 import { CaveatEvaluator, CaveatContext, globalCaveatEvaluator } from "./CaveatEvaluator.js";
 import { ABACContext } from "./ABACEvaluator.js";
-import { schema, RebacSchema } from "./Schema.js";
+import { globalSchemaManager, RebacSchema } from "./Schema.js";
 import { globalTenantRegistry } from "../compiler/tenant/TenantRegistry.js";
 
 export interface CheckPermissionParams {
@@ -81,8 +81,8 @@ export class AuthorizationService {
             return { allowed: false, trace: [], explainTree: null, explainText: "✘ Resource not found" };
         }
 
-        // Resolve schema — tenant-specific or default
-        let activeSchema: RebacSchema = schema;
+        // Resolve schema — tenant-specific or dynamic hot-reloaded default schema
+        let activeSchema: RebacSchema = globalSchemaManager.getSchema();
         if (params.tenantId) {
             if (globalTenantRegistry.has(params.tenantId)) {
                 activeSchema = globalTenantRegistry.getSchema(params.tenantId);
