@@ -1,5 +1,5 @@
 info:
-  name: Get Graph
+  name: get Graph
   type: http
   seq: 12
 
