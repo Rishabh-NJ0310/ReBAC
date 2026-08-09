@@ -4,7 +4,7 @@ import {
     compileAuthDSLFile,
     analyzeAuthDSL,
     compileAuthDSL
-} from "./compiler/CompilerFacade.js";
+} from "../compiler/CompilerFacade.js";
 
 function runV32LanguageTests() {
     console.log("=================================================");

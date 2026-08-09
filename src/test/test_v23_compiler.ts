@@ -3,7 +3,7 @@ import {
     compileAuthDSL,
     lintAuthDSL,
     explainAuthDSL
-} from "./compiler/CompilerFacade.js";
+} from "../compiler/CompilerFacade.js";
 
 function runV23CompilerTests() {
     console.log("=================================================");

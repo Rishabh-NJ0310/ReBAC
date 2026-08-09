@@ -7,7 +7,7 @@ import { ABACEvaluator } from "./authorization/ABACEvaluator.js";
 import { ExplainTreeBuilder } from "./authorization/ExplainTree.js";
 import { globalTenantRegistry } from "./compiler/tenant/TenantRegistry.js";
 import { LspDiagnosticsProvider } from "./lsp/LspDiagnosticsProvider.js";
-import { parseAuthDSLToAST } from "./compiler/CompilerFacade.js";
+import { parseAuthDSLToAST } from "../compiler/CompilerFacade.js";
 import { AttributeConditionNode, AttributePathNode } from "./compiler/ast/Nodes.js";
 
 async function runV34EnterpriseTests() {

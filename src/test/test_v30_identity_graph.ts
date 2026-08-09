@@ -1,6 +1,6 @@
 import { graphRepository } from "./authorization/GraphRepository.js";
 import { authorizationService } from "./authorization/AuthorizationService.js";
-import { compileAuthDSL } from "./compiler/CompilerFacade.js";
+import { compileAuthDSL } from "../compiler/CompilerFacade.js";
 
 async function runV30IdentityGraphTests() {
     console.log("=================================================");

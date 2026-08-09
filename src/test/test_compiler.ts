@@ -1,4 +1,4 @@
-import { compileAuthDSL, parseAuthDSLToAST } from "./compiler/CompilerFacade.js";
+import { compileAuthDSL, parseAuthDSLToAST } from "../compiler/CompilerFacade.js";
 
 function testCompiler() {
     console.log("=== 1. Testing Valid DSL Compilation ===");

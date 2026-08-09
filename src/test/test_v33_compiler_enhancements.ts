@@ -1,4 +1,4 @@
-import { parseAuthDSLToAST } from "./compiler/CompilerFacade.js";
+import { parseAuthDSLToAST } from "../compiler/CompilerFacade.js";
 import { QueryPlanner } from "./compiler/planner/QueryPlanner.js";
 import { CostEstimator } from "./compiler/planner/CostEstimator.js";
 import { globalCompilationCache } from "./compiler/cache/CompilationCache.js";
