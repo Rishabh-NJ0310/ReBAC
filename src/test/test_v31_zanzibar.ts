@@ -1,6 +1,6 @@
 import { analyzeAuthDSL, compileAuthDSL } from "../compiler/CompilerFacade.js";
-import { graphRepository } from "./authorization/GraphRepository.js";
-import { authorizationService } from "./authorization/AuthorizationService.js";
+import { graphRepository } from "../authorization/GraphRepository.js";
+import { authorizationService } from "../authorization/AuthorizationService.js";
 
 async function runV31ZanzibarTests() {
     console.log("=================================================");

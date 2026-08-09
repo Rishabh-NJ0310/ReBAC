@@ -1,9 +1,9 @@
 import { parseAuthDSLToAST } from "../compiler/CompilerFacade.js";
-import { QueryPlanner } from "./compiler/planner/QueryPlanner.js";
-import { CostEstimator } from "./compiler/planner/CostEstimator.js";
-import { globalCompilationCache } from "./compiler/cache/CompilationCache.js";
-import { graphRepository } from "./authorization/GraphRepository.js";
-import { authorizationService } from "./authorization/AuthorizationService.js";
+import { QueryPlanner } from "../compiler/planner/QueryPlanner.js";
+import { CostEstimator } from "../compiler/planner/CostEstimator.js";
+import { globalCompilationCache } from "../compiler/cache/CompilationCache.js";
+import { graphRepository } from "../authorization/GraphRepository.js";
+import { authorizationService } from "../authorization/AuthorizationService.js";
 
 async function runV33CompilerEnhancementTests() {
     console.log("=================================================");
